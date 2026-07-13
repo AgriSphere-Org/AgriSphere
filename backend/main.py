@@ -1,8 +1,9 @@
 from fastapi import FastAPI
+
 app = FastAPI(title="AgriSphere")
 
 @app.get("/")
 def home():
-    return{
+    return {
         "message": "Welcome to AgriSphere"
     }
