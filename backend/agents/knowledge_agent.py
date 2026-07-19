@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 import google.generativeai as genai
 
-from rag.rag_service import RAGService
+from services.rag_service import RAGService
 
 load_dotenv()
 

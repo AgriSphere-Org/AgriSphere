@@ -1,18 +1,11 @@
 from typing import Dict
 
+from PIL import Image
+
 from services.disease_detection_service import DiseaseDetectionService
 
 
 class CropHealthAgent:
-    """
-    Crop Health Agent
-
-    Responsibilities:
-    - Analyze disease prediction
-    - Calculate health score
-    - Determine disease severity
-    - Generate recommendations
-    """
 
     def __init__(self):
 
@@ -22,7 +15,10 @@ class CropHealthAgent:
 
     def analyze_crop(self, image_path: str) -> Dict:
 
-        prediction = self.disease_service.predict(image_path)
+        # Open image using Pillow
+        image = Image.open(image_path)
+
+        prediction = self.disease_service.predict(image)
 
         disease = prediction["disease"]
 
@@ -62,17 +58,12 @@ class CropHealthAgent:
     # -------------------------------------------------------
 
     def _calculate_health_score(
-
         self,
-
         disease: str,
-
         confidence: float
-
     ) -> int:
 
         if disease.lower() == "healthy":
-
             return 100
 
         score = int(100 - confidence)
@@ -82,29 +73,21 @@ class CropHealthAgent:
     # -------------------------------------------------------
 
     def _calculate_severity(
-
         self,
-
         disease: str,
-
         confidence: float
-
     ) -> str:
 
         if disease.lower() == "healthy":
-
             return "None"
 
         if confidence >= 95:
-
             return "Severe"
 
         elif confidence >= 80:
-
             return "Moderate"
 
         elif confidence >= 60:
-
             return "Mild"
 
         return "Low"
@@ -112,20 +95,14 @@ class CropHealthAgent:
     # -------------------------------------------------------
 
     def _generate_recommendation(
-
         self,
-
         disease: str,
-
         severity: str
-
     ) -> str:
 
         if disease.lower() == "healthy":
 
-            return (
-                "Crop appears healthy. Continue regular monitoring."
-            )
+            return "Crop appears healthy. Continue regular monitoring."
 
         recommendations = {
 
