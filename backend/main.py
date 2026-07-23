@@ -8,6 +8,7 @@ from api.market import router as market_router
 from api.government_scheme import router as government_router
 from api.knowledge import router as knowledge_router
 from api.orchestrator import router as orchestrator_router
+from api.language import router as language_router
 
 app = FastAPI(
     title="AgriSphere AI",
@@ -49,6 +50,8 @@ app.include_router(government_router)
 app.include_router(knowledge_router)
 
 app.include_router(orchestrator_router)
+
+app.include_router(language_router)
 
 # -----------------------------
 # Root Endpoint
@@ -102,6 +105,7 @@ def info():
             "Government Scheme Recommendation",
             "Knowledge (RAG)",
             "Recommendation Engine",
+            "Language Intelligence",
             "Orchestrator"
         ]
     }
