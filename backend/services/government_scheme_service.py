@@ -1,168 +1,118 @@
+import json
+import os
 from typing import List, Dict
 
 
 class GovernmentSchemeService:
     """
-    Service responsible for managing government scheme data.
+    Government Scheme Service
 
-    Currently uses an in-memory database.
-    Later it can be replaced with PostgreSQL.
+    Responsibilities
+    ----------------
+    - Load schemes from JSON
+    - Auto-detect newly added schemes
+    - Return application progress
     """
 
     def __init__(self):
 
-        self.schemes = [
+        self.scheme_file = os.path.join(
+            "data",
+            "government_schemes.json"
+        )
 
-            {
-                "scheme_name": "PM-KISAN",
+        # Demo application progress
+        # Later this should come from PostgreSQL
+        self.application_progress = {
 
-                "state": "All",
-
-                "farmer_category": [
-                    "Small",
-                    "Marginal",
-                    "Medium"
-                ],
-
-                "minimum_land": 0,
-
-                "maximum_land": 10,
-
-                "supported_crops": "All",
-
-                "irrigation": "All",
-
-                "minimum_age": 18,
-
-                "benefit": "₹6,000 per year",
-
-                "official_link": "https://pmkisan.gov.in"
+            "PM-KISAN": {
+                "status": "Under Verification",
+                "progress": 60
             },
 
-            {
-                "scheme_name": "Pradhan Mantri Krishi Sinchai Yojana",
-
-                "state": "All",
-
-                "farmer_category": [
-                    "Small",
-                    "Marginal",
-                    "Medium",
-                    "Large"
-                ],
-
-                "minimum_land": 0,
-
-                "maximum_land": 100,
-
-                "supported_crops": "All",
-
-                "irrigation": "Drip",
-
-                "minimum_age": 18,
-
-                "benefit": "Subsidy on drip irrigation",
-
-                "official_link": "https://pmksy.gov.in"
+            "Kisan Credit Card": {
+                "status": "Approved",
+                "progress": 100
             },
 
-            {
-                "scheme_name": "Kisan Credit Card",
-
-                "state": "All",
-
-                "farmer_category": [
-                    "Small",
-                    "Marginal",
-                    "Medium",
-                    "Large"
-                ],
-
-                "minimum_land": 0,
-
-                "maximum_land": 100,
-
-                "supported_crops": "All",
-
-                "irrigation": "All",
-
-                "minimum_age": 18,
-
-                "benefit": "Low-interest agricultural loan",
-
-                "official_link": "https://www.myscheme.gov.in"
+            "Pradhan Mantri Krishi Sinchai Yojana": {
+                "status": "Not Applied",
+                "progress": 0
             },
 
-            {
-                "scheme_name": "Soil Health Card Scheme",
-
-                "state": "All",
-
-                "farmer_category": [
-                    "Small",
-                    "Marginal",
-                    "Medium",
-                    "Large"
-                ],
-
-                "minimum_land": 0,
-
-                "maximum_land": 100,
-
-                "supported_crops": "All",
-
-                "irrigation": "All",
-
-                "minimum_age": 18,
-
-                "benefit": "Free soil testing",
-
-                "official_link": "https://soilhealth.dac.gov.in"
-            },
-
-            {
-                "scheme_name": "National Mission for Sustainable Agriculture",
-
-                "state": "All",
-
-                "farmer_category": [
-                    "Small",
-                    "Marginal"
-                ],
-
-                "minimum_land": 0,
-
-                "maximum_land": 5,
-
-                "supported_crops": "All",
-
-                "irrigation": "All",
-
-                "minimum_age": 18,
-
-                "benefit": "Financial assistance for sustainable farming",
-
-                "official_link": "https://nmsa.dac.gov.in"
+            "Soil Health Card Scheme": {
+                "status": "Submitted",
+                "progress": 40
             }
 
-        ]
+        }
+
+    # =======================================================
+    # Load Schemes
+    # =======================================================
 
     def get_all_schemes(self) -> List[Dict]:
-        """
-        Returns all government schemes.
-        """
 
-        return self.schemes
+        if not os.path.exists(self.scheme_file):
+            return []
 
-    def get_scheme(self, scheme_name: str) -> Dict:
-        """
-        Returns details of a single scheme.
-        """
+        with open(
+            self.scheme_file,
+            "r",
+            encoding="utf-8"
+        ) as file:
 
-        for scheme in self.schemes:
+            return json.load(file)
+
+    # =======================================================
+    # Get Single Scheme
+    # =======================================================
+
+    def get_scheme(
+        self,
+        scheme_name: str
+    ) -> Dict:
+
+        schemes = self.get_all_schemes()
+
+        for scheme in schemes:
 
             if scheme["scheme_name"].lower() == scheme_name.lower():
 
                 return scheme
 
         return {}
+
+    # =======================================================
+    # Application Progress
+    # =======================================================
+
+    def get_application_progress(
+        self,
+        scheme_name: str
+    ) -> Dict:
+
+        return self.application_progress.get(
+
+            scheme_name,
+
+            {
+                "status": "Not Applied",
+                "progress": 0
+            }
+
+        )
+
+    # =======================================================
+    # Last Updated
+    # =======================================================
+
+    def get_last_updated(
+        self,
+        scheme: Dict
+    ) -> str:
+
+        return scheme.get(
+            "last_updated",
+            "Unknown"
+        )
