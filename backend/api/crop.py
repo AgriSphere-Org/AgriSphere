@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException
 from agents.climate_intelligence_agent import ClimateAgent
 from agents.crop_planning_agent import CropPlanningAgent
 
-from models.crop_plan import *
+from models.crop_plan import CropPlanningRequest, CropPlanningResponse
 
 router = APIRouter(
     prefix="/crop",
@@ -11,7 +11,6 @@ router = APIRouter(
 )
 
 climate_agent = ClimateAgent()
-
 crop_agent = CropPlanningAgent()
 
 
@@ -22,29 +21,26 @@ crop_agent = CropPlanningAgent()
 def recommend(request: CropPlanningRequest):
 
     try:
-
         climate = climate_agent.analyze(request.city)
 
-        recommendations = crop_agent.recommend_crop(
+        climate_data = {
+            "temperature": climate["temperature"],
+            "humidity": climate["humidity"],
+            "rainfall": climate["rainfall"]
+        }
 
-            temperature=climate["temperature"],
-
-            humidity=climate["humidity"],
-
-            rainfall=climate["rainfall"],
-
-            soil_ph=request.soil_ph
-
+        recommendations = crop_agent.recommend_crops(
+            climate_data=climate_data,
+            soil_ph=request.soil_ph,
+            state=getattr(request, "state", None),
+            top_n=10
         )
 
         return {
-
             "recommendations": recommendations
-
         }
 
     except Exception as e:
-
         raise HTTPException(
             status_code=500,
             detail=str(e)

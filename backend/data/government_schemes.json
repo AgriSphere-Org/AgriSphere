@@ -1,0 +1,54 @@
+[
+    {
+        "scheme_name": "PM-KISAN",
+        "state": ["All"],
+        "farmer_category": [
+            "Small",
+            "Marginal",
+            "Medium"
+        ],
+        "purpose": [
+            "Income",
+            "General"
+        ],
+        "description": "Income support to eligible farmers.",
+        "benefit": "₹6000 per year",
+        "official_apply_url": "https://pmkisan.gov.in",
+        "last_updated": "2026-07-26"
+    },
+    {
+        "scheme_name": "Pradhan Mantri Krishi Sinchai Yojana",
+        "state": ["All"],
+        "farmer_category": [
+            "Small",
+            "Marginal",
+            "Medium",
+            "Large"
+        ],
+        "purpose": [
+            "Irrigation"
+        ],
+        "description": "Financial assistance for efficient irrigation systems.",
+        "benefit": "Subsidy on drip irrigation",
+        "official_apply_url": "https://pmksy.gov.in",
+        "last_updated": "2026-07-26"
+    },
+    {
+        "scheme_name": "Kisan Credit Card",
+        "state": ["All"],
+        "farmer_category": [
+            "Small",
+            "Marginal",
+            "Medium",
+            "Large"
+        ],
+        "purpose": [
+            "Loan",
+            "Finance"
+        ],
+        "description": "Low-interest credit facility for farmers.",
+        "benefit": "Agricultural loan at subsidized interest",
+        "official_apply_url": "https://www.myscheme.gov.in",
+        "last_updated": "2026-07-26"
+    }
+]

@@ -7,47 +7,62 @@ logger = logging.getLogger(__name__)
 
 
 class ClimateAgent:
-    """
-    Climate Intelligence Agent
-
-    Responsibilities:
-    - Analyze current weather
-    - Assess farming conditions
-    - Detect heat stress
-    - Detect drought risk
-    - Detect flood risk
-    - Generate agricultural recommendations
-    """
 
     def __init__(self):
         self.weather_service = WeatherService()
 
-    def analyze(self, city: str) -> Dict[str, Any]:
-        """
-        Main function that performs climate analysis.
-        """
+    # ==========================================================
+    # Main Analysis
+    # ==========================================================
 
-        current = self.weather_service.get_current_weather(city)
-        try:
-            forecast = self.weather_service.get_forecast(city)
-        except Exception:
-            forecast = {}
+    def analyze(
+        self,
+        state: str,
+        district: str,
+        crop: str,
+        village: str = None
+    ) -> Dict[str, Any]:
+
+        # ------------------------------------------
+        # Current Weather
+        # ------------------------------------------
+
+        current = self.weather_service.get_current_weather(
+            state,
+            district,
+            village
+        )
+
+        # ------------------------------------------
+        # Forecast
+        # ------------------------------------------
+
+        forecast = self.weather_service.get_forecast(
+            state,
+            district,
+            village
+        )
+
+        # ------------------------------------------
+        # Extract Weather
+        # ------------------------------------------
 
         main = current.get("main", {})
         wind = current.get("wind", {})
         rain = current.get("rain", {})
+        weather = current.get("weather", [{}])
 
         temperature = main.get("temp", 0)
         humidity = main.get("humidity", 0)
         wind_speed = wind.get("speed", 0)
 
-        rainfall = 0
+        rainfall = rain.get("1h", rain.get("3h", 0))
 
-        if "1h" in rain:
-            rainfall = rain["1h"]
+        weather_condition = weather[0].get("main", "Unknown")
 
-        elif "3h" in rain:
-            rainfall = rain["3h"]
+        # ------------------------------------------
+        # Climate Risks
+        # ------------------------------------------
 
         heat_stress = self._heat_stress(temperature)
 
@@ -68,147 +83,246 @@ class ClimateAgent:
             rainfall
         )
 
+        # ------------------------------------------
+        # Crop Advisory
+        # ------------------------------------------
+
         recommendation = self._recommendation(
+            crop,
             farming_condition,
             heat_stress,
             drought_risk,
             flood_risk
         )
 
-        logger.info(f"Climate analysis completed for {city}")
+        irrigation = self._irrigation_advice(
+            rainfall,
+            temperature
+        )
+
+        disease = self._disease_risk(
+            humidity,
+            rainfall
+        )
+
+        # ------------------------------------------
+        # Graph Analytics
+        # ------------------------------------------
+
+        analytics = self.weather_service.build_weather_analytics(
+            forecast
+        )
+
+        analytics = self.weather_service.calculate_crop_stress(
+            analytics
+        )
+
+        analytics = self.weather_service.calculate_irrigation_index(
+            analytics
+        )
+
+        logger.info(
+            f"Climate analysis completed for {district}, {state}"
+        )
+
+        location = (
+            f"{district}, {state}"
+            if village is None
+            else f"{village}, {district}, {state}"
+        )
 
         return {
 
-            "location": city,
+            "location": location,
 
-            "temperature": temperature,
+            "crop": crop,
 
-            "humidity": humidity,
+            "current_weather": {
 
-            "rainfall": rainfall,
+                "temperature": temperature,
 
-            "wind_speed": wind_speed,
+                "humidity": humidity,
 
-            "heat_stress": heat_stress,
+                "rainfall": rainfall,
 
-            "drought_risk": drought_risk,
+                "wind_speed": wind_speed,
 
-            "flood_risk": flood_risk,
+                "weather": weather_condition
 
-            "farming_condition": farming_condition,
+            },
 
-            "recommendation": recommendation,
+            "advisory": {
 
-            "forecast": forecast
+                "farming_condition": farming_condition,
+
+                "recommendation": recommendation,
+
+                "irrigation_advice": irrigation,
+
+                "disease_risk": disease,
+
+                "heat_stress": heat_stress,
+
+                "drought_risk": drought_risk,
+
+                "flood_risk": flood_risk
+
+            },
+
+            "analytics": analytics
 
         }
 
-    # --------------------------------------------------------
+    # ==========================================================
+    # Heat Stress
+    # ==========================================================
 
-    def _heat_stress(self, temperature: float) -> str:
+    def _heat_stress(self, temperature):
 
         if temperature >= 40:
             return "Very High"
 
-        elif temperature >= 35:
+        if temperature >= 35:
             return "High"
 
-        elif temperature >= 30:
+        if temperature >= 30:
             return "Moderate"
 
         return "Low"
 
-    # --------------------------------------------------------
+    # ==========================================================
 
     def _drought_risk(
         self,
-        temperature: float,
-        humidity: float,
-        rainfall: float
-    ) -> str:
+        temperature,
+        humidity,
+        rainfall
+    ):
 
         if rainfall < 2 and humidity < 35 and temperature > 35:
             return "High"
 
-        elif rainfall < 5 and humidity < 50:
+        if rainfall < 5 and humidity < 50:
             return "Moderate"
 
         return "Low"
 
-    # --------------------------------------------------------
+    # ==========================================================
 
     def _flood_risk(
         self,
-        rainfall: float,
-        humidity: float
-    ) -> str:
+        rainfall,
+        humidity
+    ):
 
         if rainfall > 30:
             return "High"
 
-        elif rainfall > 10:
+        if rainfall > 10:
             return "Moderate"
 
-        elif humidity > 90:
+        if humidity > 90:
             return "Moderate"
 
         return "Low"
 
-    # --------------------------------------------------------
+    # ==========================================================
 
     def _farming_condition(
         self,
-        temperature: float,
-        humidity: float,
-        rainfall: float
-    ) -> str:
+        temperature,
+        humidity,
+        rainfall
+    ):
 
         if 20 <= temperature <= 30 and 45 <= humidity <= 75:
             return "Excellent"
 
-        elif 18 <= temperature <= 35:
+        if 18 <= temperature <= 35:
             return "Good"
 
-        elif rainfall > 40:
+        if rainfall > 40:
             return "Poor"
 
         return "Average"
 
-    # --------------------------------------------------------
+    # ==========================================================
+    # Recommendation
+    # ==========================================================
 
     def _recommendation(
         self,
-        farming_condition: str,
-        heat_stress: str,
-        drought_risk: str,
-        flood_risk: str
-    ) -> str:
+        crop,
+        farming_condition,
+        heat_stress,
+        drought_risk,
+        flood_risk
+    ):
 
         if flood_risk == "High":
             return (
-                "Heavy rainfall expected. Improve field drainage and avoid sowing."
+                f"Heavy rainfall is expected. Ensure proper drainage in the {crop} field and avoid fertilizer application."
             )
 
         if drought_risk == "High":
             return (
-                "Water scarcity likely. Increase irrigation and conserve moisture."
+                f"Dry conditions are expected. Increase irrigation and conserve soil moisture for {crop}."
             )
 
         if heat_stress == "Very High":
             return (
-                "Extreme heat detected. Irrigate during early morning or evening."
+                f"Extreme heat detected. Irrigate {crop} early morning or late evening."
             )
 
         if farming_condition == "Excellent":
             return (
-                "Weather conditions are highly favorable for farming activities."
+                f"Current weather is highly favorable for {crop}. Continue normal farming practices."
             )
 
         if farming_condition == "Good":
             return (
-                "Suitable conditions for cultivation. Continue routine monitoring."
+                f"Weather conditions are suitable for {crop}. Continue regular monitoring and field activities."
             )
 
         return (
-            "Monitor weather regularly before making agricultural decisions."
+            f"Monitor weather conditions closely before performing major operations in the {crop} field."
         )
+
+    # ==========================================================
+    # Irrigation Advice
+    # ==========================================================
+
+    def _irrigation_advice(
+        self,
+        rainfall,
+        temperature
+    ):
+
+        if rainfall > 15:
+            return "No irrigation required."
+
+        if temperature > 35:
+            return "Increase irrigation frequency."
+
+        if temperature < 22:
+            return "Light irrigation is sufficient."
+
+        return "Maintain regular irrigation schedule."
+
+    # ==========================================================
+    # Disease Risk
+    # ==========================================================
+
+    def _disease_risk(
+        self,
+        humidity,
+        rainfall
+    ):
+
+        if humidity > 85 and rainfall > 5:
+            return "High"
+
+        if humidity > 70:
+            return "Moderate"
+
+        return "Low"

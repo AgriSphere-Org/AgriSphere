@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
+
 from agents.climate_intelligence_agent import ClimateAgent
-from models.weather_log import WeatherResponse
+from models.weather_log import WeatherRequest, WeatherResponse
 
 router = APIRouter(
     prefix="/weather",
@@ -10,19 +11,29 @@ router = APIRouter(
 agent = ClimateAgent()
 
 
-@router.get(
-    "/{city}",
+@router.post(
+    "",
     response_model=WeatherResponse
 )
-def weather(city: str):
+def weather(request: WeatherRequest):
 
     try:
 
-        return agent.analyze(city)
+        return agent.analyze(
+
+            state=request.state,
+
+            district=request.district,
+
+            village=request.village,
+
+            crop=request.crop
+
+        )
 
     except Exception as e:
 
         raise HTTPException(
             status_code=500,
             detail=str(e)
-        )
+        ) 

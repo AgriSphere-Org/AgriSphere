@@ -4,38 +4,19 @@ from services.government_scheme_service import GovernmentSchemeService
 
 
 class GovernmentSchemeAgent:
-    """
-    Government Scheme Agent
-
-    Responsibilities:
-    - Check farmer eligibility
-    - Calculate confidence score
-    - Rank schemes
-    - Return eligible schemes
-    """
 
     def __init__(self):
-
         self.scheme_service = GovernmentSchemeService()
 
+    # =====================================================
+    # Recommend Schemes
+    # =====================================================
+
     def recommend_schemes(
-
         self,
-
         state: str,
-
         farmer_category: str,
-
-        farm_size: float,
-
-        crop: str,
-
-        irrigation: str,
-
-        gender: str,
-
-        age: int
-
+        purpose: str
     ) -> List[Dict]:
 
         schemes = self.scheme_service.get_all_schemes()
@@ -44,178 +25,119 @@ class GovernmentSchemeAgent:
 
         for scheme in schemes:
 
-            eligible = self._is_eligible(
-
+            confidence = self._calculate_confidence(
                 scheme,
-
                 state,
-
                 farmer_category,
-
-                farm_size,
-
-                crop,
-
-                irrigation,
-
-                gender,
-
-                age
-
+                purpose
             )
 
-            if eligible:
+            if confidence >= 40:
 
-                confidence = self._calculate_confidence(
-
-                    scheme,
-
-                    state,
-
-                    farmer_category,
-
-                    farm_size,
-
-                    crop,
-
-                    irrigation
-
+                progress = self.scheme_service.get_application_progress(
+                    scheme["scheme_name"]
                 )
 
                 recommendations.append({
 
-                    "scheme_name": scheme["scheme_name"],
+                    "scheme_name":
+                        scheme["scheme_name"],
 
-                    "benefit": scheme["benefit"],
+                    "description":
+                        scheme.get(
+                            "description",
+                            ""
+                        ),
 
-                    "official_link": scheme["official_link"],
+                    "benefit":
+                        scheme["benefit"],
 
-                    "confidence": confidence
+                    "eligibility":
+                        "Eligible",
+
+                    "application_status":
+                        progress["status"],
+
+                    "progress_percentage":
+                        progress["progress"],
+
+                    "official_apply_url":
+                        scheme["official_apply_url"],
+
+                    "last_updated":
+                        self.scheme_service.get_last_updated(
+                            scheme
+                        ),
+
+                    "confidence":
+                        confidence
 
                 })
 
         recommendations.sort(
-
             key=lambda x: x["confidence"],
-
             reverse=True
-
         )
 
         return recommendations
 
-    # --------------------------------------------------
-
-    def _is_eligible(
-
-        self,
-
-        scheme: Dict,
-
-        state: str,
-
-        farmer_category: str,
-
-        farm_size: float,
-
-        crop: str,
-
-        irrigation: str,
-
-        gender: str,
-
-        age: int
-
-    ) -> bool:
-
-        if age < scheme["minimum_age"]:
-
-            return False
-
-        if scheme["state"] != "All":
-
-            if scheme["state"].lower() != state.lower():
-
-                return False
-
-        if farmer_category not in scheme["farmer_category"]:
-
-            return False
-
-        if farm_size < scheme["minimum_land"]:
-
-            return False
-
-        if farm_size > scheme["maximum_land"]:
-
-            return False
-
-        if scheme["supported_crops"] != "All":
-
-            if crop.lower() != scheme["supported_crops"].lower():
-
-                return False
-
-        if scheme["irrigation"] != "All":
-
-            if irrigation.lower() != scheme["irrigation"].lower():
-
-                return False
-
-        return True
-
-    # --------------------------------------------------
+    # =====================================================
+    # Confidence Score
+    # =====================================================
 
     def _calculate_confidence(
-
         self,
-
         scheme: Dict,
-
         state: str,
-
         farmer_category: str,
-
-        farm_size: float,
-
-        crop: str,
-
-        irrigation: str
-
+        purpose: str
     ) -> int:
 
         score = 0
 
-        if scheme["state"] == "All":
+        # ------------------------------
+        # State Match
+        # ------------------------------
 
-            score += 20
+        scheme_states = [
+            s.lower()
+            for s in scheme.get("state", [])
+        ]
 
-        elif scheme["state"].lower() == state.lower():
+        if "all" in scheme_states:
+            score += 30
 
-            score += 20
+        elif state.lower() in scheme_states:
+            score += 30
 
-        if farmer_category in scheme["farmer_category"]:
+        # ------------------------------
+        # Farmer Category
+        # ------------------------------
 
-            score += 20
+        categories = [
+            c.lower()
+            for c in scheme.get(
+                "farmer_category",
+                []
+            )
+        ]
 
-        if scheme["minimum_land"] <= farm_size <= scheme["maximum_land"]:
+        if farmer_category.lower() in categories:
+            score += 35
 
-            score += 20
+        # ------------------------------
+        # Purpose
+        # ------------------------------
 
-        if scheme["supported_crops"] == "All":
+        purposes = [
+            p.lower()
+            for p in scheme.get(
+                "purpose",
+                []
+            )
+        ]
 
-            score += 20
-
-        elif crop.lower() == scheme["supported_crops"].lower():
-
-            score += 20
-
-        if scheme["irrigation"] == "All":
-
-            score += 20
-
-        elif irrigation.lower() == scheme["irrigation"].lower():
-
-            score += 20
+        if purpose.lower() in purposes:
+            score += 35
 
         return min(score, 100)

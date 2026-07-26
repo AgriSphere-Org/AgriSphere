@@ -8,24 +8,17 @@ from models.government_scheme import (
 )
 
 router = APIRouter(
-
     prefix="/government",
-
     tags=["Government Schemes"]
-
 )
 
 agent = GovernmentSchemeAgent()
 
 
 @router.post(
-
     "/recommend",
-
     response_model=GovernmentSchemeResponse
-
 )
-
 def recommend_scheme(request: GovernmentSchemeRequest):
 
     try:
@@ -36,30 +29,17 @@ def recommend_scheme(request: GovernmentSchemeRequest):
 
             farmer_category=request.farmer_category,
 
-            farm_size=request.farm_size,
-
-            crop=request.crop,
-
-            irrigation=request.irrigation,
-
-            gender=request.gender,
-
-            age=request.age
+            purpose=request.purpose
 
         )
 
         return {
-
             "recommendations": recommendations
-
         }
 
     except Exception as e:
 
         raise HTTPException(
-
             status_code=500,
-
             detail=str(e)
-
         )
