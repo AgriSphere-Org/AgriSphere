@@ -1,93 +1,53 @@
-import os
-import shutil
-import uuid
+import io
+from PIL import Image
 
 from fastapi import (
     APIRouter,
     UploadFile,
     File,
+    Form,
     HTTPException
 )
 
 from agents.crop_health_agent import CropHealthAgent
-
 from models.crop_health_models import CropHealthResponse
 
 router = APIRouter(
-
     prefix="/crop-health",
-
     tags=["Crop Health"]
-
 )
 
 agent = CropHealthAgent()
 
-UPLOAD_FOLDER = "uploads"
-
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
 
 @router.post(
-
     "/analyze",
-
     response_model=CropHealthResponse
-
 )
-
 async def analyze_crop(
-
+    crop: str = Form(...),
     image: UploadFile = File(...)
-
 ):
-
     try:
+        # Read uploaded image bytes and convert to a PIL Image object
+        image_bytes = await image.read()
+        pil_image = Image.open(io.BytesIO(image_bytes))
 
-        extension = image.filename.split(".")[-1]
-
-        filename = f"{uuid.uuid4()}.{extension}"
-
-        image_path = os.path.join(
-
-            UPLOAD_FOLDER,
-
-            filename
-
-        )
-
-        with open(
-
-            image_path,
-
-            "wb"
-
-        ) as buffer:
-
-            shutil.copyfileobj(
-
-                image.file,
-
-                buffer
-
-            )
-
+        # Pass parameters matching CropHealthAgent signature
         result = agent.analyze_crop(
-
-            image_path
-
+            crop=crop,
+            image=pil_image
         )
 
-        os.remove(image_path)
+        # Ensure missing fields expected by CropHealthResponse model are populated
+        result.setdefault("history", [])
+        result.setdefault("comparison", {})
+        result.setdefault("graph_data", [])
 
         return result
 
     except Exception as e:
-
         raise HTTPException(
-
             status_code=500,
-
             detail=str(e)
-
         )

@@ -1,3 +1,9 @@
+import sys
+import os
+
+# Add backend directory to Python lookup path to prevent ModuleNotFoundError
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -7,6 +13,7 @@ from api.crop_health import router as crop_health_router
 from api.market import router as market_router
 from api.government_scheme import router as government_router
 from api.knowledge import router as knowledge_router
+from api.recommendation import router as recommendation_router
 from api.orchestrator import router as orchestrator_router
 
 app = FastAPI(
@@ -47,6 +54,8 @@ app.include_router(market_router)
 app.include_router(government_router)
 
 app.include_router(knowledge_router)
+
+app.include_router(recommendation_router)
 
 app.include_router(orchestrator_router)
 

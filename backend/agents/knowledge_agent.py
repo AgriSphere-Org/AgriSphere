@@ -32,7 +32,7 @@ class KnowledgeAgent:
 
         self.model = genai.GenerativeModel(
 
-            "gemini-2.5-flash"
+             model_name="gemini-flash-latest"
 
         )
 
