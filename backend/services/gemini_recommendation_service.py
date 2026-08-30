@@ -1,13 +1,19 @@
 """
 Gemini service for the AgriSphere Recommendation Agent.
 
-This service uses Gemini to independently generate agricultural
-recommendations based on:
-    - Crop
-    - State
-    - Soil pH
+The Recommendation Agent is standalone.
 
-It does not depend on outputs from other AgriSphere agents.
+Input:
+    - crop
+    - state
+    - soil_ph
+
+Output:
+    - crop
+    - state
+    - soil_ph
+    - recommendations
+    - overall_advice
 """
 
 import json
@@ -19,8 +25,6 @@ from typing import Dict
 from dotenv import load_dotenv
 from google import genai
 from google.genai.errors import APIError
-
-from models.recommendation_models import RecommendationResponse
 
 
 load_dotenv()
@@ -57,9 +61,9 @@ class GeminiRecommendationService:
     ) -> Dict:
 
         prompt = self._build_prompt(
-            crop=crop,
-            state=state,
-            soil_ph=soil_ph
+            crop,
+            state,
+            soil_ph
         )
 
         try:
@@ -74,7 +78,6 @@ class GeminiRecommendationService:
             )
 
             if not response or not response.text:
-
                 raise ValueError(
                     "Gemini returned an empty response."
                 )
@@ -83,16 +86,9 @@ class GeminiRecommendationService:
                 response.text
             )
 
-            result = json.loads(
-                cleaned_response
-            )
+            result = json.loads(cleaned_response)
 
-            # Validate Gemini output
-            validated = RecommendationResponse.model_validate(
-                result
-            )
-
-            return validated.model_dump()
+            return result
 
         except APIError as e:
 
@@ -108,7 +104,7 @@ class GeminiRecommendationService:
         except json.JSONDecodeError as e:
 
             logger.error(
-                "Invalid JSON returned by Gemini: %s",
+                "Gemini returned invalid JSON: %s",
                 str(e)
             )
 
@@ -138,98 +134,71 @@ class GeminiRecommendationService:
     ) -> str:
 
         return f"""
-You are the AgriSphere Agricultural Recommendation Agent.
+You are the AgriSphere Recommendation Agent.
 
-You are an independent agricultural advisor.
+You are an independent agricultural recommendation system.
 
-Your job is to provide practical recommendations to a farmer
-based on the information provided below.
+You receive only three inputs:
 
-IMPORTANT:
+Crop: {crop}
+State: {state}
+Soil pH: {soil_ph}
 
-You are NOT a summarization agent.
+Your task is to generate practical agricultural recommendations
+for the farmer.
 
-You are NOT combining recommendations from other agents.
+You must use the provided crop, state and soil pH as the main
+context for your recommendations.
 
-You are making your OWN agricultural assessment.
+Do NOT depend on outputs from any other AgriSphere agent.
 
-============================================================
-FARMER INPUT
-============================================================
+Do NOT ask the farmer for additional information.
 
-Crop:
-{crop}
+Do NOT summarize other agents.
 
-State:
-{state}
+Do NOT create a general essay about the crop.
 
-Soil pH:
-{soil_ph}
+Instead, provide a small number of useful and actionable
+recommendations.
 
-============================================================
-YOUR TASK
-============================================================
+Consider areas such as:
 
-Analyze the provided crop, state and soil pH.
+- Soil
+- Nutrients
+- Water
+- Crop Protection
+- Crop Management
+- Weed Management
+- Harvest Management
 
-Generate useful agricultural recommendations relevant to
-growing this crop in the given state and soil condition.
+Only include areas that are relevant.
 
-Consider, where relevant:
+Give approximately 4 recommendations.
 
-1. Soil management
-2. Nutrient management
-3. Irrigation
-4. Crop management
-5. Pest and disease prevention
-6. Weed management
-7. Growth management
-8. Harvest management
-9. General risk prevention
+Prioritize the most useful recommendations first.
 
-Do NOT force every category into the answer.
+Keep every recommendation short, clear and practical so that
+a farmer can easily understand it.
 
-Only include recommendations that are relevant.
+Do not provide a separate reason field.
 
-============================================================
-IMPORTANT REASONING RULES
-============================================================
+Do not provide risk analysis.
 
-- Use your agricultural knowledge to reason about the inputs.
-- Do not simply repeat the input.
-- Prioritize the most useful actions.
-- Give practical advice that a farmer can understand.
-- Explain the reason behind each recommendation.
-- Do not invent current weather conditions.
-- Do not invent current market prices.
-- Do not invent government schemes.
-- Do not claim that a disease exists unless there is evidence.
-- Do not give dangerous or highly specific chemical instructions.
-- Do not invent exact fertilizer or pesticide doses.
-- If important information is missing, mention it in limitations.
-- Do not treat assumptions as confirmed facts.
+Do not provide limitations.
 
-The state should be used as regional context, but do not invent
-specific local conditions that were not provided.
+Do not provide market prices.
+
+Do not provide government schemes.
+
+Do not invent current weather conditions.
+
+Do not invent farm-specific facts that were not provided.
+
+Use general agricultural knowledge when necessary, but clearly
+base the recommendations on the available inputs.
 
 ============================================================
-RISK
-============================================================
-
-Assign an overall agricultural risk based only on the available
-information.
-
-Allowed values:
-
-Low
-Moderate
-High
-Critical
-
-Do not assign High or Critical risk without sufficient reason.
-
-============================================================
-OUTPUT
+OUTPUT FORMAT
 ============================================================
 
 Return ONLY valid JSON.
@@ -240,46 +209,51 @@ Do NOT use ```json.
 
 Do NOT add any text before or after the JSON.
 
-Use exactly this structure:
+Return exactly this structure:
 
 {{
     "crop": "{crop}",
     "state": "{state}",
     "soil_ph": {soil_ph},
-
     "recommendations": [
         {{
             "priority": 1,
-            "area": "Soil Management",
-            "recommendation": "Practical recommendation",
-            "reason": "Agricultural reason for this recommendation"
+            "area": "Soil",
+            "recommendation": "Short practical recommendation."
+        }},
+        {{
+            "priority": 2,
+            "area": "Nutrients",
+            "recommendation": "Short practical recommendation."
+        }},
+        {{
+            "priority": 3,
+            "area": "Water",
+            "recommendation": "Short practical recommendation."
+        }},
+        {{
+            "priority": 4,
+            "area": "Crop Protection",
+            "recommendation": "Short practical recommendation."
         }}
     ],
-
-    "overall_risk": "Low",
-
-    "overall_advice": "Short practical advice for the farmer.",
-
-    "limitations": [
-        "Important information that was not available."
-    ]
+    "overall_advice": "Short overall advice for the farmer."
 }}
 
-============================================================
-FINAL REQUIREMENT
-============================================================
+IMPORTANT:
 
-The recommendations must be generated specifically for the
-provided crop, state and soil pH.
-
-Do not make the response a generic agricultural summary.
-
-The Recommendation Agent must provide actual actionable
-recommendations.
+- Keep recommendations concise.
+- Do not add extra JSON fields.
+- Do not add "reason".
+- Do not add "risk".
+- Do not add "limitations".
+- Do not add "agent_outputs".
+- Do not ask questions.
 """
+        return prompt
 
     # ==========================================================
-    # CLEAN GEMINI RESPONSE
+    # CLEAN JSON RESPONSE
     # ==========================================================
 
     def _clean_json_response(
@@ -289,7 +263,7 @@ recommendations.
 
         text = text.strip()
 
-        # Remove ```json
+        # Remove Markdown JSON fences if Gemini adds them
         text = re.sub(
             r"^```(?:json)?\s*",
             "",
@@ -297,7 +271,6 @@ recommendations.
             flags=re.IGNORECASE
         )
 
-        # Remove closing ```
         text = re.sub(
             r"\s*```$",
             "",

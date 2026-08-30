@@ -1,7 +1,7 @@
 """
 AgriSphere Recommendation Agent.
 
-This is a standalone agricultural recommendation agent.
+Standalone agricultural recommendation agent.
 
 Required inputs:
     - crop
@@ -30,11 +30,10 @@ logger = logging.getLogger("agrisphere.recommendation_agent")
 class RecommendationAgent:
 
     def __init__(self):
-
         self.service = RecommendationService()
 
     # ==========================================================
-    # MAIN AGENT METHOD
+    # MAIN METHOD
     # ==========================================================
 
     def evaluate(
@@ -42,7 +41,7 @@ class RecommendationAgent:
         request: RecommendationRequest
     ) -> Dict:
         """
-        Evaluate the farmer's information and generate
+        Evaluate farmer input and generate
         independent agricultural recommendations.
         """
 
@@ -55,14 +54,10 @@ class RecommendationAgent:
         # ------------------------------------------------------
 
         if not request.crop.strip():
-            raise ValueError(
-                "Crop is required."
-            )
+            raise ValueError("Crop is required.")
 
         if not request.state.strip():
-            raise ValueError(
-                "State is required."
-            )
+            raise ValueError("State is required.")
 
         if request.soil_ph < 0 or request.soil_ph > 14:
             raise ValueError(
@@ -80,7 +75,7 @@ class RecommendationAgent:
         )
 
         # ------------------------------------------------------
-        # Validate final response
+        # Validate response
         # ------------------------------------------------------
 
         validated_response = RecommendationResponse.model_validate(

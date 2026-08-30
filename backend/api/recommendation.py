@@ -1,14 +1,16 @@
 """
-FastAPI API for the AgriSphere Recommendation Agent.
+FastAPI endpoint for the AgriSphere Recommendation Agent.
 
-The Recommendation Agent is an independent agent.
+The Recommendation Agent is standalone.
 
-It accepts only:
+Input:
     - crop
     - state
     - soil_ph
 
-It does not require any other AgriSphere agent.
+Output:
+    - recommendations
+    - overall_advice
 """
 
 import logging
@@ -43,7 +45,7 @@ recommendation_agent = RecommendationAgent()
 
 
 # ==========================================================
-# RECOMMENDATION ENDPOINT
+# ENDPOINT
 # ==========================================================
 
 @router.post(
@@ -63,16 +65,13 @@ async def generate_recommendation(
     try:
 
         logger.info(
-            "Recommendation request received: "
-            "crop=%s, state=%s, soil_pH=%s",
+            "Recommendation request received: crop=%s, state=%s, soil_pH=%s",
             request.crop,
             request.state,
             request.soil_ph
         )
 
-        result = recommendation_agent.evaluate(
-            request
-        )
+        result = recommendation_agent.evaluate(request)
 
         return result
 
@@ -111,7 +110,5 @@ async def generate_recommendation(
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=(
-                "Unable to generate agricultural recommendations."
-            )
+            detail="Unable to generate agricultural recommendations."
         )

@@ -1,10 +1,7 @@
 """
 Service layer for the AgriSphere Recommendation Agent.
 
-This service connects the Recommendation Agent with the
-Gemini Recommendation Service.
-
-The agent is completely standalone and requires only:
+The Recommendation Agent is standalone and uses only:
     - crop
     - state
     - soil_ph
@@ -24,7 +21,6 @@ logger = logging.getLogger("agrisphere.recommendation_service")
 class RecommendationService:
 
     def __init__(self):
-
         self.gemini_service = GeminiRecommendationService()
 
     # ==========================================================
@@ -38,43 +34,56 @@ class RecommendationService:
         soil_ph: float
     ) -> Dict:
         """
-        Generate agricultural recommendations using Gemini.
-
-        Inputs:
-            crop
-            state
-            soil_ph
+        Generate independent agricultural recommendations.
         """
 
-        logger.info(
-            "Generating recommendation for crop=%s, state=%s, soil_pH=%s",
-            crop,
-            state,
-            soil_ph
-        )
+        # ------------------------------------------------------
+        # Validate crop
+        # ------------------------------------------------------
 
-        # Basic validation
         if not crop or not crop.strip():
-            raise ValueError(
-                "Crop is required."
-            )
+            raise ValueError("Crop is required.")
+
+        # ------------------------------------------------------
+        # Validate state
+        # ------------------------------------------------------
 
         if not state or not state.strip():
-            raise ValueError(
-                "State is required."
-            )
+            raise ValueError("State is required.")
+
+        # ------------------------------------------------------
+        # Validate soil pH
+        # ------------------------------------------------------
 
         if soil_ph < 0 or soil_ph > 14:
             raise ValueError(
                 "Soil pH must be between 0 and 14."
             )
 
-        # Send the three inputs to Gemini
+        logger.info(
+            "Generating recommendation for %s in %s with soil pH %.2f",
+            crop,
+            state,
+            soil_ph
+        )
+
+        # ------------------------------------------------------
+        # Ask Gemini for recommendations
+        # ------------------------------------------------------
+
         result = self.gemini_service.generate_recommendation(
             crop=crop,
             state=state,
             soil_ph=soil_ph
         )
+
+        # ------------------------------------------------------
+        # Make sure basic fields match the farmer's input
+        # ------------------------------------------------------
+
+        result["crop"] = crop
+        result["state"] = state
+        result["soil_ph"] = soil_ph
 
         logger.info(
             "Recommendation generated successfully."
