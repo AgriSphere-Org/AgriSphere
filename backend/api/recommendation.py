@@ -1,64 +1,117 @@
-from fastapi import APIRouter, HTTPException
+"""
+FastAPI API for the AgriSphere Recommendation Agent.
+
+The Recommendation Agent is an independent agent.
+
+It accepts only:
+    - crop
+    - state
+    - soil_ph
+
+It does not require any other AgriSphere agent.
+"""
+
+import logging
+
+from fastapi import APIRouter, HTTPException, status
 
 from agents.recommendation_agent import RecommendationAgent
-
 from models.recommendation_models import (
-
     RecommendationRequest,
-
     RecommendationResponse
-
 )
+
+
+logger = logging.getLogger("agrisphere.api.recommendation")
+
+
+# ==========================================================
+# ROUTER
+# ==========================================================
 
 router = APIRouter(
-
-    prefix="/recommendation",
-
-    tags=["Final Recommendation"]
-
+    prefix="/api/v1/recommendations",
+    tags=["Recommendation Agent"]
 )
 
-agent = RecommendationAgent()
 
+# ==========================================================
+# AGENT INSTANCE
+# ==========================================================
+
+recommendation_agent = RecommendationAgent()
+
+
+# ==========================================================
+# RECOMMENDATION ENDPOINT
+# ==========================================================
 
 @router.post(
-
-    "/generate",
-
-    response_model=RecommendationResponse
-
+    "/analyze",
+    response_model=RecommendationResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Generate agricultural recommendations",
+    description=(
+        "Generates independent agricultural recommendations "
+        "using crop, state and soil pH."
+    )
 )
-
-def generate_recommendation(
-
+async def generate_recommendation(
     request: RecommendationRequest
-
 ):
 
     try:
 
-        result = agent.generate_recommendation(
+        logger.info(
+            "Recommendation request received: "
+            "crop=%s, state=%s, soil_pH=%s",
+            request.crop,
+            request.state,
+            request.soil_ph
+        )
 
-            climate_data=request.climate_data,
-
-            crop_plan=request.crop_plan,
-
-            crop_health=request.crop_health,
-
-            market_data=request.market_data,
-
-            government_schemes=request.government_schemes
-
+        result = recommendation_agent.evaluate(
+            request
         )
 
         return result
 
-    except Exception as e:
+    except ValueError as e:
+
+        logger.warning(
+            "Invalid recommendation input: %s",
+            str(e)
+        )
 
         raise HTTPException(
-
-            status_code=500,
-
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(e)
+        )
 
+    except RuntimeError as e:
+
+        logger.error(
+            "Recommendation service error: %s",
+            str(e),
+            exc_info=True
+        )
+
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=str(e)
+        )
+
+    except Exception as e:
+
+        logger.error(
+            "Unexpected recommendation error: %s",
+            str(e),
+            exc_info=True
+        )
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=(
+                "Unable to generate agricultural recommendations."
+            )
         )

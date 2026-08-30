@@ -7,8 +7,10 @@ from api.crop_health import router as crop_health_router
 from api.market import router as market_router
 from api.government_scheme import router as government_router
 from api.knowledge import router as knowledge_router
+from api.recommendation import router as recommendation_router
 from api.orchestrator import router as orchestrator_router
 from api.language import router as language_router
+
 
 app = FastAPI(
     title="AgriSphere AI",
@@ -18,14 +20,15 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# -----------------------------
-# CORS Configuration
-# -----------------------------
+
+# ==========================================================
+# CORS CONFIGURATION
+# ==========================================================
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",   # React (Vite)
+        "http://localhost:5173",
         "http://127.0.0.1:5173",
     ],
     allow_credentials=True,
@@ -33,9 +36,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# -----------------------------
-# Register API Routers
-# -----------------------------
+
+# ==========================================================
+# REGISTER API ROUTERS
+# ==========================================================
 
 app.include_router(weather_router)
 
@@ -49,13 +53,16 @@ app.include_router(government_router)
 
 app.include_router(knowledge_router)
 
+app.include_router(recommendation_router)
+
 app.include_router(orchestrator_router)
 
 app.include_router(language_router)
 
-# -----------------------------
-# Root Endpoint
-# -----------------------------
+
+# ==========================================================
+# ROOT ENDPOINT
+# ==========================================================
 
 @app.get("/", tags=["Home"])
 def home():
@@ -69,9 +76,9 @@ def home():
     }
 
 
-# -----------------------------
-# Health Check
-# -----------------------------
+# ==========================================================
+# HEALTH CHECK
+# ==========================================================
 
 @app.get("/health", tags=["Health"])
 def health():
@@ -83,9 +90,9 @@ def health():
     }
 
 
-# -----------------------------
-# API Information
-# -----------------------------
+# ==========================================================
+# API INFORMATION
+# ==========================================================
 
 @app.get("/info", tags=["Information"])
 def info():

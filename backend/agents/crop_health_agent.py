@@ -2,134 +2,122 @@ from typing import Dict
 
 from PIL import Image
 
-from services.disease_detection_service import DiseaseDetectionService
+from services.gemini_vision_service import GeminiVisionService
 
 
 class CropHealthAgent:
+    """
+    Crop Health Agent
+
+    Responsibilities:
+    - Receive crop image
+    - Analyze using Gemini Vision
+    - Calculate health score
+    - Return structured crop health result
+    """
 
     def __init__(self):
 
-        self.disease_service = DiseaseDetectionService()
+        self.vision_service = GeminiVisionService()
 
     # -------------------------------------------------------
 
-    def analyze_crop(self, image_path: str) -> Dict:
+    def analyze_crop(
+        self,
+        crop: str,
+        image_path: str
+    ) -> Dict:
 
-        # Open image using Pillow
         image = Image.open(image_path)
 
-        prediction = self.disease_service.predict(image)
-
-        disease = prediction["disease"]
-
-        confidence = prediction["confidence"]
+        analysis = self.vision_service.analyze_crop(
+            image=image,
+            farmer_crop=crop
+        )
 
         health_score = self._calculate_health_score(
-            disease,
-            confidence
-        )
-
-        severity = self._calculate_severity(
-            disease,
-            confidence
-        )
-
-        recommendation = self._generate_recommendation(
-            disease,
-            severity
+            analysis["health_status"],
+            analysis["severity"]
         )
 
         return {
 
-            "crop": prediction.get("crop", "Unknown"),
+            "crop": crop if crop else "Unknown",
 
-            "disease": disease,
+            "detected_crop":
+                analysis.get(
+                    "detected_crop",
+                    "Unknown"
+                ),
 
-            "confidence": confidence,
+            "crop_match":
+                analysis.get(
+                    "crop_match",
+                    False
+                ),
 
-            "health_score": health_score,
+            "image_quality":
+                analysis.get(
+                    "image_quality",
+                    "Unknown"
+                ),
 
-            "severity": severity,
+            "health_status":
+                analysis.get(
+                    "health_status",
+                    "Unknown"
+                ),
 
-            "recommendation": recommendation
+            "disease":
+                analysis.get(
+                    "disease",
+                    None
+                ),
 
+            "health_score":
+                health_score,
+
+            "severity":
+                analysis.get(
+                    "severity",
+                    "Unknown"
+                ),
+
+            "visible_symptoms":
+                analysis.get(
+                    "visible_symptoms",
+                    []
+                ),
+
+            "analysis_summary":
+                analysis.get(
+                    "analysis_summary",
+                    ""
+                )
         }
 
     # -------------------------------------------------------
 
     def _calculate_health_score(
         self,
-        disease: str,
-        confidence: float
+        health_status: str,
+        severity: str
     ) -> int:
 
-        if disease.lower() == "healthy":
+        if health_status.lower() == "healthy":
             return 100
 
-        score = int(100 - confidence)
+        severity_scores = {
 
-        return max(score, 10)
+            "mild": 80,
 
-    # -------------------------------------------------------
+            "moderate": 60,
 
-    def _calculate_severity(
-        self,
-        disease: str,
-        confidence: float
-    ) -> str:
-
-        if disease.lower() == "healthy":
-            return "None"
-
-        if confidence >= 95:
-            return "Severe"
-
-        elif confidence >= 80:
-            return "Moderate"
-
-        elif confidence >= 60:
-            return "Mild"
-
-        return "Low"
-
-    # -------------------------------------------------------
-
-    def _generate_recommendation(
-        self,
-        disease: str,
-        severity: str
-    ) -> str:
-
-        if disease.lower() == "healthy":
-
-            return "Crop appears healthy. Continue regular monitoring."
-
-        recommendations = {
-
-            "Leaf Blight":
-                "Apply recommended fungicide and remove infected leaves.",
-
-            "Powdery Mildew":
-                "Use sulfur-based fungicide and improve air circulation.",
-
-            "Bacterial Spot":
-                "Avoid overhead irrigation and use copper-based sprays.",
-
-            "Rust":
-                "Apply appropriate fungicide and remove infected foliage.",
-
-            "Early Blight":
-                "Use crop rotation and fungicide treatment.",
-
-            "Late Blight":
-                "Remove infected plants immediately and spray fungicide."
+            "severe": 35
 
         }
 
-        return recommendations.get(
-
-            disease,
-
-            "Consult your nearest agricultural extension officer."
-
+        return severity_scores.get(
+            severity.lower(),
+            50
         )
