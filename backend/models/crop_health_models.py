@@ -1,23 +1,25 @@
-from typing import List, Optional
-from pydantic import BaseModel, Field
+from typing import Any, Dict, List
+from pydantic import BaseModel
 
 
 class CropHealthResponse(BaseModel):
 
-    # Crop information
     crop: str
-    detected_crop: Optional[str] = None
-    crop_match: Optional[bool] = None
 
-    # Image quality
-    image_quality: str
+    disease: str
 
-    # Health analysis
-    health_status: str
-    disease: Optional[str] = None
+    confidence: float
+
     health_score: int
+
     severity: str
 
-    # AI reasoning
-    visible_symptoms: List[str] = Field(default_factory=list)
-    analysis_summary: str
+    recommendation: str
+
+    status: str
+
+    history: List[Dict[str, Any]]
+
+    comparison: Dict[str, Any]
+
+    graph_data: List[int]

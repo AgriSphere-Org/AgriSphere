@@ -2,121 +2,60 @@ from fastapi import APIRouter, HTTPException
 
 from agents.market_agent import MarketAgent
 from models.market_models import (
+    AnalyzeCropRequest,
+    AnalyzeCropResponse,
+    CompareCropRequest,
+    CompareCropResponse,
     MarketRequest,
-    MarketResponse
+    MarketResponse,
 )
 
-
-router = APIRouter(
-    prefix="/market",
-    tags=["Market Intelligence"]
-)
-
-
+router = APIRouter(prefix="/market", tags=["Market Intelligence"])
 agent = MarketAgent()
 
 
 @router.post(
     "/analyze",
-    response_model=MarketResponse
+    response_model=MarketResponse,
+    summary="Analyze specific market prices",
+    description="Analyzes market intelligence data, price trends, forecasts, and profit potential for a specific crop, state, and district.",
 )
-def analyze_market(
-    request: MarketRequest
-):
-
+async def analyze_market(request: MarketRequest):
     try:
-
-        # ------------------------------------------
-        # Validate input
-        # ------------------------------------------
-
-        if not request.crop or not request.crop.strip():
-
-            raise HTTPException(
-                status_code=400,
-                detail="Crop name is required."
-            )
-
-        if not request.state or not request.state.strip():
-
-            raise HTTPException(
-                status_code=400,
-                detail="State is required."
-            )
-
-        if (
-            not request.district
-            or not request.district.strip()
-        ):
-
-            raise HTTPException(
-                status_code=400,
-                detail="District is required."
-            )
-
-        # ------------------------------------------
-        # Market Intelligence Agent
-        # ------------------------------------------
-
-        result = agent.analyze_market(
-
-            crop=request.crop.strip(),
-
-            state=request.state.strip(),
-
-            district=request.district.strip()
-
+        return agent.analyze_market(
+            crop=request.crop, state=request.state, district=request.district
         )
-
-        # ------------------------------------------
-        # No data
-        # ------------------------------------------
-
-        if not result:
-
-            raise HTTPException(
-
-                status_code=404,
-
-                detail=(
-                    "No market data found for "
-                    f"{request.crop}, "
-                    f"{request.district}, "
-                    f"{request.state}."
-                )
-
-            )
-
-        return result
-
-    # ----------------------------------------------
-    # Preserve FastAPI HTTP errors
-    # ----------------------------------------------
-
-    except HTTPException:
-
-        raise
-
-    # ----------------------------------------------
-    # Other errors
-    # ----------------------------------------------
-
     except ValueError as e:
-
-        raise HTTPException(
-
-            status_code=404,
-
-            detail=str(e)
-
-        )
-
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-        raise HTTPException(
 
-            status_code=500,
+@router.post(
+    "/crop-analysis",
+    response_model=AnalyzeCropResponse,
+    summary="Comprehensive single-crop analysis",
+    description="Provides detailed market analytics for a single crop, including historical price trends, future price predictions, and automated reasoning.",
+)
+async def analyze_crop(request: AnalyzeCropRequest):
+    try:
+        return agent.analyze_crop(crop=request.crop)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-            detail=f"Market analysis failed: {str(e)}"
 
-        )
+@router.post(
+    "/compare",
+    response_model=CompareCropResponse,
+    summary="Compare market trends between two crops",
+    description="Compares market trends, profitability potential, and confidence scores between two crops to provide a recommended crop choice and comparative reasoning.",
+)
+async def compare_crops(request: CompareCropRequest):
+    try:
+        return agent.compare_crop_trends(crop1=request.crop1, crop2=request.crop2)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

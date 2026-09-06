@@ -1,7 +1,5 @@
-import os
-import shutil
-import uuid
-from typing import Optional
+import io
+from PIL import Image
 
 from fastapi import (
     APIRouter,
@@ -21,104 +19,35 @@ router = APIRouter(
 
 agent = CropHealthAgent()
 
-UPLOAD_FOLDER = "uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-ALLOWED_EXTENSIONS = {
-    "jpg",
-    "jpeg",
-    "png",
-    "webp"
-}
-
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
-
 
 @router.post(
     "/analyze",
     response_model=CropHealthResponse
 )
 async def analyze_crop(
-    crop: Optional[str] = Form(None),
+    crop: str = Form(...),
     image: UploadFile = File(...)
 ):
-
-    image_path = None
-
     try:
-
-        # -------------------------------
-        # Validate file extension
-        # -------------------------------
-
-        if not image.filename:
-            raise HTTPException(
-                status_code=400,
-                detail="No image selected."
-            )
-
-        extension = image.filename.split(".")[-1].lower()
-
-        if extension not in ALLOWED_EXTENSIONS:
-            raise HTTPException(
-                status_code=400,
-                detail="Only JPG, JPEG, PNG and WEBP images are allowed."
-            )
-
-        # -------------------------------
-        # Validate file size
-        # -------------------------------
-
+        # Read uploaded image bytes and convert to a PIL Image object
         image_bytes = await image.read()
+        pil_image = Image.open(io.BytesIO(image_bytes))
 
-        if len(image_bytes) > MAX_FILE_SIZE:
-            raise HTTPException(
-                status_code=400,
-                detail="Image size exceeds 10 MB."
-            )
-
-        # Reset pointer
-        image.file.seek(0)
-
-        # -------------------------------
-        # Save image temporarily
-        # -------------------------------
-
-        filename = f"{uuid.uuid4()}.{extension}"
-
-        image_path = os.path.join(
-            UPLOAD_FOLDER,
-            filename
-        )
-
-        with open(image_path, "wb") as buffer:
-            shutil.copyfileobj(
-                image.file,
-                buffer
-            )
-
-        # -------------------------------
-        # Analyze Crop
-        # -------------------------------
-
+        # Pass parameters matching CropHealthAgent signature
         result = agent.analyze_crop(
             crop=crop,
-            image_path=image_path
+            image=pil_image
         )
+
+        # Ensure missing fields expected by CropHealthResponse model are populated
+        result.setdefault("history", [])
+        result.setdefault("comparison", {})
+        result.setdefault("graph_data", [])
 
         return result
 
-    except HTTPException:
-        raise
-
     except Exception as e:
-
         raise HTTPException(
             status_code=500,
-            detail=f"Crop analysis failed: {str(e)}"
+            detail=str(e)
         )
-
-    finally:
-
-        if image_path and os.path.exists(image_path):
-            os.remove(image_path)

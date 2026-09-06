@@ -1,701 +1,149 @@
-import os
-from datetime import datetime
-from typing import Dict, List, Optional
-
-import requests
-from dotenv import load_dotenv
-
-
-# =========================================================
-# LOAD ENVIRONMENT VARIABLES
-# =========================================================
-
-load_dotenv()
+from typing import Dict, List
 
 
 class MarketService:
     """
-    Market Service
+    Service responsible for fetching market data.
 
-    Fetches agricultural mandi prices from the official
-    Government of India data.gov.in / AGMARKNET API.
+    Currently uses an in-memory database.
+    Later this can be replaced with:
+    - AGMARKNET API
+    - eNAM API
+    - PostgreSQL
     """
 
-    # =====================================================
-    # DATA.GOV.IN RESOURCE
-    # =====================================================
-
-    BASE_URL = (
-        "https://api.data.gov.in/resource/"
-        "9ef84268-d588-465a-a308-a864a43d0070"
-    )
-
-    # =====================================================
-    # CONFIGURATION
-    # =====================================================
-
-    TIMEOUT = 60
-
-    DEFAULT_LIMIT = 20
-
-    # Browser-like headers are required because the
-    # data.gov.in API responds correctly to this request
-    # format from our Python environment.
-    HEADERS = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 "
-            "(KHTML, like Gecko) "
-            "Chrome/151.0.0.0 Safari/537.36"
-        ),
-        "Accept": "application/json",
-    }
-
-    # =====================================================
-    # INIT
-    # =====================================================
-
     def __init__(self):
-
-        self.api_key = os.getenv(
-            "DATA_GOV_API_KEY"
-        )
-
-        if not self.api_key:
-
-            raise RuntimeError(
-                "DATA_GOV_API_KEY is missing. "
-                "Add your data.gov.in API key to backend/.env"
-            )
-
-    # =====================================================
-    # GET MARKET DATA
-    # =====================================================
-
-    def get_market_data(
-        self,
-        crop: str,
-        state: str,
-        district: str
-    ) -> Dict:
-
-        # -------------------------------------------------
-        # Validate
-        # -------------------------------------------------
-
-        crop = crop.strip()
-        state = state.strip()
-        district = district.strip()
-
-        if not crop:
-
-            raise ValueError(
-                "Crop is required."
-            )
-
-        if not state:
-
-            raise ValueError(
-                "State is required."
-            )
-
-        if not district:
-
-            raise ValueError(
-                "District is required."
-            )
-
-        # -------------------------------------------------
-        # API PARAMETERS
-        # -------------------------------------------------
-
-        params = {
-
-            "api-key":
-                self.api_key,
-
-            "format":
-                "json",
-
-            "limit":
-                self.DEFAULT_LIMIT,
-
-            "offset":
-                0,
-
-            "filters[state]":
-                state,
-
-            "filters[district]":
-                district,
-
-            "filters[commodity]":
-                crop
-        }
-
-        print(
-            "\n========================================"
-        )
-
-        print(
-            "MARKET API REQUEST"
-        )
-
-        print(
-            f"Crop     : {crop}"
-        )
-
-        print(
-            f"State    : {state}"
-        )
-
-        print(
-            f"District : {district}"
-        )
-
-        print(
-            "========================================"
-        )
-
-        # -------------------------------------------------
-        # REQUEST
-        # -------------------------------------------------
-
-        try:
-
-            response = requests.get(
-
-                self.BASE_URL,
-
-                params=params,
-
-                headers=self.HEADERS,
-
-                timeout=(10, self.TIMEOUT)
-
-            )
-
-        except requests.exceptions.ConnectTimeout:
-
-            raise RuntimeError(
-                "Could not connect to data.gov.in. "
-                "The government API is not responding."
-            )
-
-        except requests.exceptions.ReadTimeout:
-
-            raise RuntimeError(
-                "data.gov.in connected but did not "
-                f"return data within {self.TIMEOUT} seconds."
-            )
-
-        except requests.exceptions.ConnectionError:
-
-            raise RuntimeError(
-                "Unable to connect to data.gov.in. "
-                "Check your internet connection."
-            )
-
-        except requests.exceptions.RequestException as e:
-
-            raise RuntimeError(
-                f"Market API connection failed: {str(e)}"
-            )
-
-        # -------------------------------------------------
-        # HTTP STATUS
-        # -------------------------------------------------
-
-        print(
-            f"HTTP STATUS: {response.status_code}"
-        )
-
-        if response.status_code == 403:
-
-            raise RuntimeError(
-                "data.gov.in rejected the API key. "
-                "Check DATA_GOV_API_KEY in .env."
-            )
-
-        if response.status_code == 400:
-
-            raise RuntimeError(
-                "data.gov.in rejected the request. "
-                "Check the filters and API parameters."
-            )
-
-        if response.status_code != 200:
-
-            raise RuntimeError(
-                f"data.gov.in returned HTTP "
-                f"{response.status_code}."
-            )
-
-        # -------------------------------------------------
-        # JSON
-        # -------------------------------------------------
-
-        try:
-
-            data = response.json()
-
-        except ValueError:
-
-            raise RuntimeError(
-                "data.gov.in returned an invalid JSON response."
-            )
-
-        # -------------------------------------------------
-        # RECORDS
-        # -------------------------------------------------
-
-        records = data.get(
-            "records",
-            []
-        )
-
-        print(
-            f"RECORDS RECEIVED: {len(records)}"
-        )
-
-        # -------------------------------------------------
-        # NO DATA
-        # -------------------------------------------------
-
-        if not records:
-
-            print(
-                "No market records found for "
-                f"{crop} / {state} / {district}"
-            )
-
-            return {}
-
-        # -------------------------------------------------
-        # CLEAN
-        # -------------------------------------------------
-
-        cleaned_records = [
-
-            self._clean_record(
-                record
-            )
-
-            for record in records
-
+        self.market_data = [
+            {
+                "crop": "Rice",
+                "state": "Maharashtra",
+                "district": "Nagpur",
+                "market": "Nagpur APMC",
+                "current_price": 2650,
+                "average_price": 2480,
+                "minimum_price": 2350,
+                "maximum_price": 2780,
+                "arrival_quantity": 350,
+                "unit": "Quintal",
+                "price_history": [
+                    2350, 2380, 2400, 2420, 2440, 2460,
+                    2480, 2500, 2530, 2570, 2610, 2650
+                ],
+                "price_prediction": [
+                    2670, 2690, 2720, 2750, 2780, 2810,
+                    2840, 2870, 2900, 2930, 2960, 3000
+                ]
+            },
+            {
+                "crop": "Wheat",
+                "state": "Maharashtra",
+                "district": "Nashik",
+                "market": "Nashik APMC",
+                "current_price": 2450,
+                "average_price": 2300,
+                "minimum_price": 2200,
+                "maximum_price": 2550,
+                "arrival_quantity": 420,
+                "unit": "Quintal",
+                "price_history": [
+                    2200, 2220, 2240, 2260, 2280, 2300,
+                    2320, 2350, 2380, 2400, 2430, 2450
+                ],
+                "price_prediction": [
+                    2470, 2490, 2510, 2530, 2550, 2570,
+                    2590, 2610, 2630, 2650, 2670, 2700
+                ]
+            },
+            {
+                "crop": "Tomato",
+                "state": "Maharashtra",
+                "district": "Pune",
+                "market": "Pune APMC",
+                "current_price": 3200,
+                "average_price": 2850,
+                "minimum_price": 2500,
+                "maximum_price": 3400,
+                "arrival_quantity": 180,
+                "unit": "Quintal",
+                "price_history": [
+                    2450, 2500, 2550, 2620, 2700, 2780,
+                    2850, 2920, 3000, 3080, 3150, 3200
+                ],
+                "price_prediction": [
+                    3250, 3300, 3350, 3400, 3450, 3500,
+                    3550, 3600, 3650, 3700, 3750, 3800
+                ]
+            },
+            {
+                "crop": "Cotton",
+                "state": "Maharashtra",
+                "district": "Akola",
+                "market": "Akola APMC",
+                "current_price": 7200,
+                "average_price": 6900,
+                "minimum_price": 6700,
+                "maximum_price": 7450,
+                "arrival_quantity": 240,
+                "unit": "Quintal",
+                "price_history": [
+                    6700, 6750, 6800, 6840, 6880, 6920,
+                    6960, 7000, 7050, 7100, 7150, 7200
+                ],
+                "price_prediction": [
+                    7250, 7300, 7350, 7400, 7450, 7500,
+                    7550, 7600, 7650, 7700, 7750, 7800
+                ]
+            },
+            {
+                "crop": "Soybean",
+                "state": "Maharashtra",
+                "district": "Latur",
+                "market": "Latur APMC",
+                "current_price": 4850,
+                "average_price": 4600,
+                "minimum_price": 4400,
+                "maximum_price": 5000,
+                "arrival_quantity": 270,
+                "unit": "Quintal",
+                "price_history": [
+                    4400, 4440, 4480, 4520, 4560, 4600,
+                    4650, 4700, 4740, 4780, 4820, 4850
+                ],
+                "price_prediction": [
+                    4880, 4920, 4960, 5000, 5040, 5080,
+                    5120, 5160, 5200, 5240, 5280, 5320
+                ]
+            }
         ]
 
-        # -------------------------------------------------
-        # REMOVE INVALID PRICES
-        # -------------------------------------------------
-
-        cleaned_records = [
-
-            record
-
-            for record in cleaned_records
-
-            if record["modal_price"] > 0
-
-        ]
-
-        if not cleaned_records:
-
-            print(
-                "Records were received but no valid "
-                "modal prices were found."
-            )
-
-            return {}
-
-        # -------------------------------------------------
-        # SORT BY DATE
-        # -------------------------------------------------
-
-        cleaned_records.sort(
-
-            key=lambda record:
-                self._date_sort_value(
-                    record.get(
-                        "arrival_date"
-                    )
-                ),
-
-            reverse=True
-
-        )
-
-        latest = cleaned_records[0]
-
-        # -------------------------------------------------
-        # REFERENCE AVERAGE
-        # -------------------------------------------------
-
-        modal_prices = [
-
-            record["modal_price"]
-
-            for record in cleaned_records
-
-            if record["modal_price"] > 0
-
-        ]
-
-        if modal_prices:
-
-            average_price = (
-                sum(modal_prices)
-                / len(modal_prices)
-            )
-
-        else:
-
-            average_price = (
-                latest["modal_price"]
-            )
-
-        # -------------------------------------------------
-        # FINAL RESULT
-        # -------------------------------------------------
-
-        result = {
-
-            "crop":
-                latest["crop"],
-
-            "market":
-                latest["market"],
-
-            "district":
-                latest["district"],
-
-            "state":
-                latest["state"],
-
-            "current_price":
-                latest["modal_price"],
-
-            "modal_price":
-                latest["modal_price"],
-
-            "average_price":
-                round(
-                    average_price,
-                    2
-                ),
-
-            "minimum_price":
-                latest["min_price"],
-
-            "maximum_price":
-                latest["max_price"],
-
-            "arrival_quantity":
-                latest.get(
-                    "arrival_quantity",
-                    0
-                ),
-
-            "unit":
-                "₹/quintal",
-
-            "arrival_date":
-                latest["arrival_date"],
-
-            "last_updated":
-                latest["arrival_date"],
-
-            "data_source":
-                "Government of India - data.gov.in / AGMARKNET"
-
-        }
-
-        print(
-            "MARKET RESULT:"
-        )
-
-        print(
-            result
-        )
-
-        print(
-            "========================================\n"
-        )
-
-        return result
-
-    # =====================================================
-    # GET ALL MARKET DATA
-    # =====================================================
-
-    def get_all_market_data(
-        self,
-        state: Optional[str] = None,
-        crop: Optional[str] = None
-    ) -> List[Dict]:
-
-        params = {
-
-            "api-key":
-                self.api_key,
-
-            "format":
-                "json",
-
-            "limit":
-                self.DEFAULT_LIMIT,
-
-            "offset":
-                0
-
-        }
-
-        if state:
-
-            params[
-                "filters[state]"
-            ] = state.strip()
-
-        if crop:
-
-            params[
-                "filters[commodity]"
-            ] = crop.strip()
-
-        try:
-
-            response = requests.get(
-
-                self.BASE_URL,
-
-                params=params,
-
-                headers=self.HEADERS,
-
-                timeout=(10, self.TIMEOUT)
-
-            )
-
-            response.raise_for_status()
-
-            data = response.json()
-
-        except requests.exceptions.ConnectTimeout:
-
-            raise RuntimeError(
-                "Could not connect to data.gov.in."
-            )
-
-        except requests.exceptions.ReadTimeout:
-
-            raise RuntimeError(
-                f"data.gov.in did not respond within "
-                f"{self.TIMEOUT} seconds."
-            )
-
-        except requests.exceptions.Timeout:
-
-            raise RuntimeError(
-                "Market API request timed out."
-            )
-
-        except requests.exceptions.RequestException as e:
-
-            raise RuntimeError(
-                f"Market API request failed: {str(e)}"
-            )
-
-        except ValueError:
-
-            raise RuntimeError(
-                "Market API returned invalid JSON."
-            )
-
-        records = data.get(
-            "records",
-            []
-        )
-
-        return [
-
-            self._clean_record(
-                record
-            )
-
-            for record in records
-
-        ]
-
-    # =====================================================
-    # CLEAN GOVERNMENT RECORD
-    # =====================================================
-
-    def _clean_record(
-        self,
-        record: Dict
-    ) -> Dict:
+    def get_all_market_data(self) -> List[Dict]:
+        """Returns complete market dataset."""
+        return self.market_data
+
+    def get_market_data(self, crop: str, state: str, district: str) -> Dict:
+        """Returns market information for a crop based on crop, state, and district."""
+        for market in self.market_data:
+            if (
+                market["crop"].lower() == crop.lower()
+                and market["state"].lower() == state.lower()
+                and market["district"].lower() == district.lower()
+            ):
+                return market
+        return {}
+
+    def get_crop(self, crop: str) -> Dict:
+        """Returns market data for a crop."""
+        for market in self.market_data:
+            if market["crop"].lower() == crop.lower():
+                return market
+        return {}
+
+    def compare_crops(self, crop1: str, crop2: str) -> Dict:
+        """Returns data for comparison of two crops."""
+        crop_one = self.get_crop(crop1)
+        crop_two = self.get_crop(crop2)
 
         return {
-
-            "state":
-                str(
-                    record.get(
-                        "state",
-                        ""
-                    )
-                ).strip(),
-
-            "district":
-                str(
-                    record.get(
-                        "district",
-                        ""
-                    )
-                ).strip(),
-
-            "market":
-                str(
-                    record.get(
-                        "market",
-                        ""
-                    )
-                ).strip(),
-
-            "crop":
-                str(
-                    record.get(
-                        "commodity",
-                        ""
-                    )
-                ).strip(),
-
-            "variety":
-                str(
-                    record.get(
-                        "variety",
-                        ""
-                    )
-                ).strip(),
-
-            "grade":
-                str(
-                    record.get(
-                        "grade",
-                        ""
-                    )
-                ).strip(),
-
-            "arrival_date":
-                str(
-                    record.get(
-                        "arrival_date",
-                        ""
-                    )
-                ).strip(),
-
-            "min_price":
-                self._to_float(
-                    record.get(
-                        "min_price"
-                    )
-                ),
-
-            "max_price":
-                self._to_float(
-                    record.get(
-                        "max_price"
-                    )
-                ),
-
-            "modal_price":
-                self._to_float(
-                    record.get(
-                        "modal_price"
-                    )
-                ),
-
-            "arrival_quantity":
-                self._to_float(
-                    record.get(
-                        "arrival_quantity",
-                        0
-                    )
-                )
-
+            "crop1": crop_one,
+            "crop2": crop_two
         }
-
-    # =====================================================
-    # FLOAT CONVERSION
-    # =====================================================
-
-    def _to_float(
-        self,
-        value
-    ) -> float:
-
-        if value is None:
-
-            return 0.0
-
-        try:
-
-            if isinstance(
-                value,
-                str
-            ):
-
-                value = (
-                    value
-                    .replace(
-                        ",",
-                        ""
-                    )
-                    .strip()
-                )
-
-            return float(value)
-
-        except (
-            TypeError,
-            ValueError
-        ):
-
-            return 0.0
-
-    # =====================================================
-    # DATE PARSER
-    # =====================================================
-
-    def _date_sort_value(
-        self,
-        date_string: Optional[str]
-    ):
-
-        if not date_string:
-
-            return datetime.min
-
-        formats = [
-
-            "%d/%m/%Y",
-
-            "%Y-%m-%d",
-
-            "%d-%m-%Y"
-
-        ]
-
-        for date_format in formats:
-
-            try:
-
-                return datetime.strptime(
-                    date_string,
-                    date_format
-                )
-
-            except ValueError:
-
-                continue
-
-        return datetime.min
