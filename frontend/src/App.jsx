@@ -20,7 +20,7 @@ import CropHealth from "./pages/CropHealth";
 import Market from "./pages/Market";
 import GovernmentSchemes from "./pages/GovernmentSchemes";
 import Knowledge from "./pages/Knowledge";
-import Recommendations from "./pages/Recommendations";
+
 
 function App() {
   return (
@@ -42,6 +42,7 @@ function App() {
           element={<Signup />}
         />
 
+
         {/* =====================================================
             DASHBOARD
         ===================================================== */}
@@ -54,22 +55,35 @@ function App() {
             </Layout>
           }
         />
+
+
+        {/* =====================================================
+            SETTINGS
+        ===================================================== */}
+
         <Route
           path="/settings"
           element={
-           <Layout>
-             <Settings />
-           </Layout>
+            <Layout>
+              <Settings />
+            </Layout>
           }
         />
+
+
+        {/* =====================================================
+            NOTIFICATIONS
+        ===================================================== */}
+
         <Route
           path="/notifications"
           element={
-           <Layout>
+            <Layout>
               <Notifications />
-           </Layout>
+            </Layout>
           }
-       />
+        />
+
 
         {/* =====================================================
             CLIMATE INTELLIGENCE
@@ -84,6 +98,7 @@ function App() {
           }
         />
 
+
         {/* =====================================================
             CROP PLANNING
         ===================================================== */}
@@ -96,6 +111,7 @@ function App() {
             </Layout>
           }
         />
+
 
         {/* =====================================================
             CROP HEALTH
@@ -110,6 +126,7 @@ function App() {
           }
         />
 
+
         {/* =====================================================
             MARKET INTELLIGENCE
         ===================================================== */}
@@ -122,6 +139,7 @@ function App() {
             </Layout>
           }
         />
+
 
         {/* =====================================================
             GOVERNMENT SCHEMES
@@ -136,6 +154,7 @@ function App() {
           }
         />
 
+
         {/* =====================================================
             AI KNOWLEDGE
         ===================================================== */}
@@ -149,18 +168,6 @@ function App() {
           }
         />
 
-        {/* =====================================================
-            AI RECOMMENDATIONS
-        ===================================================== */}
-
-        <Route
-          path="/recommendations"
-          element={
-            <Layout>
-              <Recommendations />
-            </Layout>
-          }
-        />
 
         {/* =====================================================
             DEFAULT ROUTE
@@ -175,6 +182,7 @@ function App() {
             />
           }
         />
+
 
         {/* =====================================================
             UNKNOWN ROUTES

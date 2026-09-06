@@ -7,7 +7,7 @@ from agents.crop_health_agent import CropHealthAgent
 from agents.market_agent import MarketAgent
 from agents.government_scheme_agent import GovernmentSchemeAgent
 from agents.knowledge_agent import KnowledgeAgent
-from agents.recommendation_agent import RecommendationAgent
+
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,6 @@ class AgriSphereOrchestrator:
         self.market_agent = MarketAgent()
         self.scheme_agent = GovernmentSchemeAgent()
         self.knowledge_agent = KnowledgeAgent()
-        self.recommendation_agent = RecommendationAgent()
 
     def run(
         self,
@@ -41,19 +40,17 @@ class AgriSphereOrchestrator:
 
         try:
 
-            ###########################################################
-            # STEP 1
-            # Climate Intelligence
-            ###########################################################
+            # ======================================================
+            # STEP 1: CLIMATE INTELLIGENCE
+            # ======================================================
 
             logger.info("Running Climate Agent")
 
             climate = self.climate_agent.get_climate(city)
 
-            ###########################################################
-            # STEP 2
-            # Crop Planning
-            ###########################################################
+            # ======================================================
+            # STEP 2: CROP PLANNING
+            # ======================================================
 
             logger.info("Running Crop Planning Agent")
 
@@ -64,21 +61,20 @@ class AgriSphereOrchestrator:
                 soil_ph=soil_ph,
             )
 
-            ###########################################################
-            # STEP 3
-            # Crop Health
-            ###########################################################
+            # ======================================================
+            # STEP 3: CROP HEALTH
+            # ======================================================
 
             logger.info("Running Crop Health Agent")
 
             crop_health = self.crop_health_agent.analyze_crop(
-                crop_image_path
+                crop=crop_plan["crop"],
+                image_path=crop_image_path,
             )
 
-            ###########################################################
-            # STEP 4
-            # Market Intelligence
-            ###########################################################
+            # ======================================================
+            # STEP 4: MARKET INTELLIGENCE
+            # ======================================================
 
             logger.info("Running Market Agent")
 
@@ -88,10 +84,9 @@ class AgriSphereOrchestrator:
                 district=district,
             )
 
-            ###########################################################
-            # STEP 5
-            # Government Schemes
-            ###########################################################
+            # ======================================================
+            # STEP 5: GOVERNMENT SCHEMES
+            # ======================================================
 
             logger.info("Running Government Scheme Agent")
 
@@ -105,10 +100,9 @@ class AgriSphereOrchestrator:
                 age=age,
             )
 
-            ###########################################################
-            # STEP 6
-            # Knowledge Agent (Optional)
-            ###########################################################
+            # ======================================================
+            # STEP 6: KNOWLEDGE AGENT
+            # ======================================================
 
             knowledge = None
 
@@ -118,27 +112,11 @@ class AgriSphereOrchestrator:
 
                 knowledge = self.knowledge_agent.ask(question)
 
-            ###########################################################
-            # STEP 7
-            # Final Recommendation
-            ###########################################################
-
-            logger.info("Running Recommendation Agent")
-
-            recommendation = self.recommendation_agent.generate_recommendation(
-                climate_data=climate,
-                crop_plan=crop_plan,
-                crop_health=crop_health,
-                market_data=market,
-                government_schemes=schemes,
-            )
-
-            ###########################################################
+            # ======================================================
             # FINAL RESPONSE
-            ###########################################################
+            # ======================================================
 
             return {
-
                 "success": True,
 
                 "climate": climate,
@@ -152,8 +130,6 @@ class AgriSphereOrchestrator:
                 "government_schemes": schemes,
 
                 "knowledge": knowledge,
-
-                "recommendation": recommendation,
             }
 
         except Exception as e:
@@ -161,8 +137,6 @@ class AgriSphereOrchestrator:
             logger.exception("Pipeline Failed")
 
             return {
-
                 "success": False,
-
-                "error": str(e)
+                "error": str(e),
             }

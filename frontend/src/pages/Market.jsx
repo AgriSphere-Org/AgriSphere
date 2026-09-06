@@ -11,7 +11,6 @@ import {
   ArrowDown,
   Minus,
   BarChart3,
-  Activity,
   CalendarDays,
   RefreshCw,
   AlertTriangle,
@@ -20,14 +19,11 @@ import {
 const API_BASE_URL = "http://127.0.0.1:8000";
 
 function Market() {
-
   const [crop, setCrop] = useState("");
 
   const [state, setState] = useState("");
 
   const [district, setDistrict] = useState("");
-
-  const [market, setMarket] = useState("");
 
   const [result, setResult] = useState(null);
 
@@ -35,40 +31,34 @@ function Market() {
 
   const [error, setError] = useState("");
 
-
   /* =====================================================
      MARKET ANALYSIS
   ===================================================== */
 
   const handleAnalyze = async (event) => {
-
     event.preventDefault();
 
     setError("");
     setResult(null);
 
-
     if (!crop.trim()) {
-
       setError("Please enter a crop name.");
-
       return;
     }
-
 
     if (!state.trim()) {
-
       setError("Please enter your state.");
-
       return;
     }
 
+    if (!district.trim()) {
+      setError("Please enter your district.");
+      return;
+    }
 
     setLoading(true);
 
-
     try {
-
       const response = await fetch(
         `${API_BASE_URL}/market/analyze`,
         {
@@ -79,39 +69,24 @@ function Market() {
           },
 
           body: JSON.stringify({
-
             crop: crop.trim(),
-
             state: state.trim(),
-
-            district:
-              district.trim() || null,
-
-            market:
-              market.trim() || null,
-
+            district: district.trim(),
           }),
         }
       );
 
-
       const data = await response.json();
 
-
       if (!response.ok) {
-
         throw new Error(
           data.detail ||
-          "Unable to fetch market information."
+            "Unable to fetch market information."
         );
-
       }
 
-
       setResult(data);
-
     } catch (err) {
-
       console.error(
         "Market analysis error:",
         err
@@ -119,66 +94,46 @@ function Market() {
 
       setError(
         err.message ||
-        "Unable to connect to Market Intelligence Agent."
+          "Unable to connect to Market Intelligence Agent."
       );
-
     } finally {
-
       setLoading(false);
-
     }
-
   };
-
 
   /* =====================================================
      RESET
   ===================================================== */
 
   const resetMarket = () => {
-
     setCrop("");
     setState("");
     setDistrict("");
-    setMarket("");
 
     setResult(null);
     setError("");
-
   };
-
 
   /* =====================================================
      HELPERS
   ===================================================== */
 
   const getValue = (...values) => {
-
     for (const value of values) {
-
       if (
         value !== undefined &&
         value !== null &&
         value !== ""
       ) {
-
         return value;
-
       }
-
     }
 
     return null;
-
   };
 
-
   const getTrend = (value) => {
-
-    const text =
-      String(value || "")
-        .toLowerCase();
-
+    const text = String(value || "").toLowerCase();
 
     if (
       text.includes("up") ||
@@ -186,11 +141,8 @@ function Market() {
       text.includes("rising") ||
       text.includes("bull")
     ) {
-
       return "up";
-
     }
-
 
     if (
       text.includes("down") ||
@@ -198,40 +150,25 @@ function Market() {
       text.includes("fall") ||
       text.includes("bear")
     ) {
-
       return "down";
-
     }
-
 
     return "stable";
-
   };
-
 
   const getTrendIcon = (trend) => {
-
     if (trend === "up") {
-
       return <ArrowUp size={16} />;
-
     }
-
 
     if (trend === "down") {
-
       return <ArrowDown size={16} />;
-
     }
 
-
     return <Minus size={16} />;
-
   };
 
-
   const getTrendClass = (trend) => {
-
     if (trend === "up") {
       return "market-trend-up";
     }
@@ -241,34 +178,23 @@ function Market() {
     }
 
     return "market-trend-stable";
-
   };
 
-
   const formatPrice = (value) => {
-
     if (
       value === undefined ||
       value === null ||
       value === ""
     ) {
-
       return "—";
-
     }
-
 
     if (typeof value === "number") {
-
       return `₹${value.toLocaleString("en-IN")}`;
-
     }
 
-
     return String(value);
-
   };
-
 
   /* =====================================================
      NORMALIZE DATA
@@ -283,7 +209,6 @@ function Market() {
       )
     : null;
 
-
   const minPrice = result
     ? getValue(
         result.min_price,
@@ -292,7 +217,6 @@ function Market() {
       )
     : null;
 
-
   const maxPrice = result
     ? getValue(
         result.max_price,
@@ -300,7 +224,6 @@ function Market() {
         result.maxPrice
       )
     : null;
-
 
   const trendValue = result
     ? getValue(
@@ -311,10 +234,7 @@ function Market() {
       )
     : null;
 
-
-  const trend =
-    getTrend(trendValue);
-
+  const trend = getTrend(trendValue);
 
   const dataPoints =
     result?.prices ||
@@ -324,12 +244,10 @@ function Market() {
     result?.records ||
     [];
 
-
   const safeDataPoints =
     Array.isArray(dataPoints)
       ? dataPoints
       : [];
-
 
   const recommendation = result
     ? getValue(
@@ -339,11 +257,8 @@ function Market() {
       )
     : null;
 
-
   return (
-
     <div className="agent-page market-page">
-
 
       {/* =================================================
           HEADER
@@ -361,11 +276,9 @@ function Market() {
 
           </div>
 
-
           <h1>
             Understand your crop's market
           </h1>
-
 
           <p>
             Track crop prices, identify market
@@ -375,7 +288,6 @@ function Market() {
 
         </div>
 
-
         <div className="agent-header-icon">
 
           <BarChart3 size={32} />
@@ -383,7 +295,6 @@ function Market() {
         </div>
 
       </section>
-
 
       {/* =================================================
           SEARCH CARD
@@ -398,7 +309,6 @@ function Market() {
             <Search size={18} />
 
           </div>
-
 
           <div>
 
@@ -415,12 +325,10 @@ function Market() {
 
         </div>
 
-
         <form
           onSubmit={handleAnalyze}
           className="market-form"
         >
-
 
           {/* CROP */}
 
@@ -434,18 +342,16 @@ function Market() {
 
             </label>
 
-
             <input
               type="text"
               value={crop}
               onChange={(event) =>
                 setCrop(event.target.value)
               }
-              placeholder="e.g. Wheat"
+              placeholder="e.g. Tomato"
             />
 
           </div>
-
 
           {/* STATE */}
 
@@ -459,7 +365,6 @@ function Market() {
 
             </label>
 
-
             <input
               type="text"
               value={state}
@@ -471,7 +376,6 @@ function Market() {
 
           </div>
 
-
           {/* DISTRICT */}
 
           <div className="agent-field">
@@ -482,10 +386,7 @@ function Market() {
 
               District
 
-              <span>Optional</span>
-
             </label>
-
 
             <input
               type="text"
@@ -498,34 +399,6 @@ function Market() {
 
           </div>
 
-
-          {/* MARKET */}
-
-          <div className="agent-field">
-
-            <label>
-
-              <BarChart3 size={14} />
-
-              Market
-
-              <span>Optional</span>
-
-            </label>
-
-
-            <input
-              type="text"
-              value={market}
-              onChange={(event) =>
-                setMarket(event.target.value)
-              }
-              placeholder="e.g. Lasalgaon"
-            />
-
-          </div>
-
-
           {/* BUTTON */}
 
           <button
@@ -535,34 +408,25 @@ function Market() {
           >
 
             {loading ? (
-
               <>
-
                 <Loader2
                   size={17}
                   className="spin"
                 />
 
                 Analyzing...
-
               </>
-
             ) : (
-
               <>
-
                 <Search size={17} />
 
                 Analyze market
-
               </>
-
             )}
 
           </button>
 
         </form>
-
 
         {/* ERROR */}
 
@@ -582,7 +446,6 @@ function Market() {
 
       </section>
 
-
       {/* =================================================
           RESULTS
       ================================================= */}
@@ -590,7 +453,6 @@ function Market() {
       {result && (
 
         <section className="market-results">
-
 
           {/* =================================================
               RESULT HEADER
@@ -616,7 +478,6 @@ function Market() {
 
             </div>
 
-
             <button
               type="button"
               className="market-refresh"
@@ -632,20 +493,17 @@ function Market() {
 
           </div>
 
-
           {/* =================================================
               KPI CARDS
           ================================================= */}
 
           <div className="market-kpi-grid">
 
-
             <MarketKPI
               icon={<IndianRupee size={19} />}
               label="Current price"
               value={formatPrice(currentPrice)}
             />
-
 
             <MarketKPI
               icon={<TrendingUp size={19} />}
@@ -657,13 +515,11 @@ function Market() {
               trend={trend}
             />
 
-
             <MarketKPI
               icon={<ArrowDown size={19} />}
               label="Minimum price"
               value={formatPrice(minPrice)}
             />
-
 
             <MarketKPI
               icon={<ArrowUp size={19} />}
@@ -673,16 +529,13 @@ function Market() {
 
           </div>
 
-
           {/* =================================================
               TREND CARD
           ================================================= */}
 
           <div className="market-main-grid">
 
-
             <div className="market-chart-card">
-
 
               <div className="market-card-heading">
 
@@ -698,7 +551,6 @@ function Market() {
 
                 </div>
 
-
                 <div
                   className={`market-trend-badge ${getTrendClass(
                     trend
@@ -713,7 +565,6 @@ function Market() {
                 </div>
 
               </div>
-
 
               {safeDataPoints.length > 0 ? (
 
@@ -735,7 +586,6 @@ function Market() {
 
                   </div>
 
-
                   <div className="market-bars">
 
                     {safeDataPoints.map(
@@ -751,10 +601,8 @@ function Market() {
                               )
                             : point;
 
-
                         const numericPrice =
                           Number(price) || 0;
-
 
                         const maxChartPrice =
                           Math.max(
@@ -771,15 +619,15 @@ function Market() {
                                       )
                                     : item;
 
-                                return Number(
-                                  value
-                                ) || 0;
+                                return (
+                                  Number(value) ||
+                                  0
+                                );
 
                               }
                             ),
                             1
                           );
-
 
                         const height =
                           Math.max(
@@ -789,7 +637,6 @@ function Market() {
                               maxChartPrice
                             ) * 100
                           );
-
 
                         const label =
                           typeof point ===
@@ -802,7 +649,6 @@ function Market() {
                             : `Day ${
                                 index + 1
                               }`;
-
 
                         return (
 
@@ -861,13 +707,11 @@ function Market() {
 
             </div>
 
-
             {/* =================================================
                 MARKET SUMMARY
             ================================================= */}
 
             <div className="market-summary-card">
-
 
               <div className="market-card-heading">
 
@@ -885,7 +729,6 @@ function Market() {
 
               </div>
 
-
               <div
                 className={`market-outlook-icon ${getTrendClass(
                   trend
@@ -896,28 +739,21 @@ function Market() {
 
               </div>
 
-
               <h4>
                 {trendValue ||
                   "Market conditions are stable"}
               </h4>
-
 
               <p>
                 {recommendation ||
                   "Continue monitoring local market prices before deciding when and where to sell your produce."}
               </p>
 
-
               <div className="market-location">
 
                 <MapPin size={14} />
 
                 <span>
-
-                  {market
-                    ? `${market}, `
-                    : ""}
 
                   {district
                     ? `${district}, `
@@ -933,7 +769,6 @@ function Market() {
 
           </div>
 
-
           {/* =================================================
               DATA TABLE
           ================================================= */}
@@ -941,7 +776,6 @@ function Market() {
           {safeDataPoints.length > 0 && (
 
             <div className="market-table-card">
-
 
               <div className="market-card-heading">
 
@@ -962,7 +796,6 @@ function Market() {
                 />
 
               </div>
-
 
               <div className="market-table-wrapper">
 
@@ -992,7 +825,6 @@ function Market() {
 
                   </thead>
 
-
                   <tbody>
 
                     {safeDataPoints.map(
@@ -1006,7 +838,6 @@ function Market() {
                                 price: point,
                               };
 
-
                         const price =
                           getValue(
                             item.price,
@@ -1014,15 +845,15 @@ function Market() {
                             item.value
                           );
 
-
                         const date =
                           getValue(
                             item.date,
                             item.day,
                             item.label
                           ) ||
-                          `Record ${index + 1}`;
-
+                          `Record ${
+                            index + 1
+                          }`;
 
                         const itemTrend =
                           getTrend(
@@ -1031,7 +862,6 @@ function Market() {
                               trendValue
                             )
                           );
-
 
                         return (
 
@@ -1043,18 +873,19 @@ function Market() {
 
                             <td>
                               {getValue(
-                                item.market,
-                                market
+                                item.market
                               ) ||
                                 "Market data"}
                             </td>
 
                             <td>
+
                               <strong>
                                 {formatPrice(
                                   price
                                 )}
                               </strong>
+
                             </td>
 
                             <td>
@@ -1097,7 +928,6 @@ function Market() {
       )}
 
     </div>
-
   );
 }
 
@@ -1122,7 +952,6 @@ function MarketKPI({
         {icon}
 
       </div>
-
 
       <div>
 
@@ -1157,7 +986,6 @@ function MarketKPI({
     </div>
 
   );
-
 }
 
 
@@ -1172,7 +1000,6 @@ function getTrendClassLocal(trend) {
   }
 
   return "market-trend-stable";
-
 }
 
 

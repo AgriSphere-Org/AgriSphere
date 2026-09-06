@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
-from agents.climate_intelligence_agent import ClimateAgent
+from services.weather_service import WeatherService
 from agents.crop_planning_agent import CropPlanningAgent
 
 from models.crop_plan import CropPlanningRequest, CropPlanningResponse
@@ -10,7 +10,7 @@ router = APIRouter(
     tags=["Crop Planning"]
 )
 
-climate_agent = ClimateAgent()
+weather_service = WeatherService()
 crop_agent = CropPlanningAgent()
 
 
@@ -21,18 +21,39 @@ crop_agent = CropPlanningAgent()
 def recommend(request: CropPlanningRequest):
 
     try:
-        climate = climate_agent.analyze(request.city)
+        # ------------------------------------------
+        # Get weather data using city/district
+        # ------------------------------------------
+
+        weather = weather_service.get_current_weather(
+            request.state,
+            request.city
+        )
+
+        # ------------------------------------------
+        # Extract climate data
+        # ------------------------------------------
+
+        main = weather.get("main", {})
+        rain = weather.get("rain", {})
 
         climate_data = {
-            "temperature": climate["temperature"],
-            "humidity": climate["humidity"],
-            "rainfall": climate["rainfall"]
+            "temperature": main.get("temp", 0),
+            "humidity": main.get("humidity", 0),
+            "rainfall": rain.get(
+                "1h",
+                rain.get("3h", 0)
+            )
         }
+
+        # ------------------------------------------
+        # Crop recommendations
+        # ------------------------------------------
 
         recommendations = crop_agent.recommend_crops(
             climate_data=climate_data,
             soil_ph=request.soil_ph,
-            state=getattr(request, "state", None),
+            state=request.state,
             top_n=10
         )
 

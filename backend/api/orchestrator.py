@@ -1,13 +1,16 @@
 from typing import Optional
+import os
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from agents.orchestrator import AgriSphereOrchestrator
 
+
 router = APIRouter(
     prefix="/orchestrator",
     tags=["Orchestrator"],
 )
+
 
 orchestrator = AgriSphereOrchestrator()
 
@@ -39,13 +42,25 @@ async def analyze_farm(
 
 ):
 
+    image_path = None
+
     try:
+
+        # ======================================================
+        # SAVE TEMPORARY CROP IMAGE
+        # ======================================================
 
         image_path = f"temp_{crop_image.filename}"
 
         with open(image_path, "wb") as file:
 
-            file.write(await crop_image.read())
+            file.write(
+                await crop_image.read()
+            )
+
+        # ======================================================
+        # RUN AGRISPHERE ORCHESTRATOR
+        # ======================================================
 
         result = orchestrator.run(
 
@@ -87,8 +102,10 @@ async def analyze_farm(
 
     finally:
 
-        import os
+        # ======================================================
+        # DELETE TEMPORARY IMAGE
+        # ======================================================
 
-        if os.path.exists(image_path):
+        if image_path and os.path.exists(image_path):
 
             os.remove(image_path)

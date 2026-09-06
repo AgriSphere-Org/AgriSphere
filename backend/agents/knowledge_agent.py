@@ -15,20 +15,22 @@ class KnowledgeAgent:
 
     def __init__(self):
 
-        # ==============================
-        # RAG
-        # ==============================
+        # =====================================================
+        # RAG SERVICE
+        # =====================================================
 
         self.rag_service = RAGService()
 
-        # ==============================
+        # =====================================================
         # GEMINI
-        # ==============================
+        # =====================================================
 
         api_key = os.getenv("GEMINI_API_KEY")
 
         if not api_key:
-            raise ValueError("GEMINI_API_KEY is not configured.")
+            raise ValueError(
+                "GEMINI_API_KEY is not configured."
+            )
 
         self.client = genai.Client(
             api_key=api_key
@@ -50,13 +52,15 @@ class KnowledgeAgent:
 
         if not question:
             raise ValueError(
-                "Please provide an agricultural question."
+                "Please provide a question."
             )
 
-        conversation_context = conversation_context or {}
+        conversation_context = (
+            conversation_context or {}
+        )
 
         # -----------------------------------------------------
-        # 1. UNDERSTAND
+        # 1. UNDERSTAND USER QUESTION
         # -----------------------------------------------------
 
         analysis = self._analyze_query(
@@ -65,6 +69,7 @@ class KnowledgeAgent:
         )
 
         print("\n========== QUERY ANALYSIS ==========")
+
         print(
             json.dumps(
                 analysis,
@@ -74,7 +79,7 @@ class KnowledgeAgent:
         )
 
         # -----------------------------------------------------
-        # 2. SPECIALIZED AGENT ROUTING
+        # 2. CHECK SPECIALIZED AGENT
         # -----------------------------------------------------
 
         specialized = self._detect_specialized_agent(
@@ -85,58 +90,111 @@ class KnowledgeAgent:
 
             return {
                 "question": question,
+
                 "answer": specialized["message"],
+
                 "sources": [],
-                "topic": analysis.get("topic"),
-                "intent": analysis.get("intent"),
-                "crop": analysis.get("crop"),
-                "evidence_available": False,
-                "evidence_sufficient": False,
-                "requires_specialized_agent": True,
-                "specialized_agent": specialized["specialized_agent"],
-                "missing_information": analysis.get(
-                    "missing_information", []
+
+                "topic": analysis.get(
+                    "topic"
                 ),
-                "confidence": "Not applicable"
+
+                "intent": analysis.get(
+                    "intent"
+                ),
+
+                "crop": analysis.get(
+                    "crop"
+                ),
+
+                "evidence_available": False,
+
+                "evidence_sufficient": False,
+
+                "requires_specialized_agent": True,
+
+                "specialized_agent":
+                    specialized[
+                        "specialized_agent"
+                    ],
+
+                "missing_information":
+                    analysis.get(
+                        "missing_information",
+                        []
+                    ),
+
+                "confidence":
+                    "Not applicable"
             }
 
         # -----------------------------------------------------
         # 3. CLARIFICATION
         # -----------------------------------------------------
 
-        if analysis.get("needs_clarification", False):
+        if analysis.get(
+            "needs_clarification",
+            False
+        ):
 
             return {
                 "question": question,
+
                 "answer": analysis.get(
                     "clarification_question",
-                    "Please provide a little more information."
+                    "Could you provide a little more information?"
                 ),
+
                 "sources": [],
-                "topic": analysis.get("topic"),
-                "intent": analysis.get("intent"),
-                "crop": analysis.get("crop"),
-                "evidence_available": False,
-                "evidence_sufficient": False,
-                "requires_specialized_agent": False,
-                "specialized_agent": None,
-                "missing_information": analysis.get(
-                    "missing_information", []
+
+                "topic": analysis.get(
+                    "topic"
                 ),
-                "confidence": "Insufficient information"
+
+                "intent": analysis.get(
+                    "intent"
+                ),
+
+                "crop": analysis.get(
+                    "crop"
+                ),
+
+                "evidence_available": False,
+
+                "evidence_sufficient": False,
+
+                "requires_specialized_agent": False,
+
+                "specialized_agent": None,
+
+                "missing_information":
+                    analysis.get(
+                        "missing_information",
+                        []
+                    ),
+
+                "confidence":
+                    "Insufficient information"
             }
 
         # -----------------------------------------------------
-        # 4. RAG RETRIEVAL
+        # 4. BUILD BETTER SEARCH QUERY
         # -----------------------------------------------------
 
         search_query = analysis.get(
-            "search_query",
-            question
+            "search_query"
         )
+
+        if not search_query:
+
+            search_query = question
 
         print("\n========== SEARCH QUERY ==========")
         print(search_query)
+
+        # -----------------------------------------------------
+        # 5. RAG RETRIEVAL
+        # -----------------------------------------------------
 
         try:
 
@@ -147,17 +205,21 @@ class KnowledgeAgent:
 
         except Exception as e:
 
-            print("RAG retrieval error:", e)
+            print(
+                "RAG retrieval error:",
+                e
+            )
 
             documents = []
 
         print("\n========== RETRIEVAL ==========")
+
         print(
             f"Documents retrieved: {len(documents)}"
         )
 
         # -----------------------------------------------------
-        # 5. BUILD CONTEXT
+        # 6. BUILD CONTEXT
         # -----------------------------------------------------
 
         context = self._build_context(
@@ -165,36 +227,93 @@ class KnowledgeAgent:
         )
 
         # -----------------------------------------------------
-        # 6. DIRECT REASONING + ANSWER
+        # 7. GENERATE ANSWER
         # -----------------------------------------------------
 
         answer = self._generate_answer(
             question=question,
+
             analysis=analysis,
-            conversation_context=conversation_context,
+
+            conversation_context=
+                conversation_context,
+
             context=context,
-            evidence_available=len(documents) > 0
+
+            evidence_available=
+                len(documents) > 0
         )
 
         # -----------------------------------------------------
-        # 7. RESPONSE
+        # 8. DETERMINE EVIDENCE STATUS
+        # -----------------------------------------------------
+
+        evidence_available = (
+            len(documents) > 0
+        )
+
+        evidence_sufficient = (
+            self._has_useful_context(
+                context
+            )
+        )
+
+        # -----------------------------------------------------
+        # 9. RESPONSE
         # -----------------------------------------------------
 
         return {
-            "question": question,
-            "answer": answer,
-            "sources": self._extract_sources(documents),
-            "topic": analysis.get("topic"),
-            "intent": analysis.get("intent"),
-            "crop": analysis.get("crop"),
-            "evidence_available": len(documents) > 0,
-            "evidence_sufficient": len(documents) > 0,
-            "requires_specialized_agent": False,
-            "specialized_agent": None,
-            "missing_information": analysis.get(
-                "missing_information", []
-            ),
-            "confidence": "High" if documents else "Moderate"
+
+            "question":
+                question,
+
+            "answer":
+                answer,
+
+            "sources":
+                self._extract_sources(
+                    documents
+                ),
+
+            "topic":
+                analysis.get(
+                    "topic"
+                ),
+
+            "intent":
+                analysis.get(
+                    "intent"
+                ),
+
+            "crop":
+                analysis.get(
+                    "crop"
+                ),
+
+            "evidence_available":
+                evidence_available,
+
+            "evidence_sufficient":
+                evidence_sufficient,
+
+            "requires_specialized_agent":
+                False,
+
+            "specialized_agent":
+                None,
+
+            "missing_information":
+                analysis.get(
+                    "missing_information",
+                    []
+                ),
+
+            "confidence":
+                (
+                    "Grounded"
+                    if evidence_sufficient
+                    else "General knowledge"
+                )
         }
 
     # =========================================================
@@ -208,52 +327,131 @@ class KnowledgeAgent:
     ) -> Dict:
 
         prompt = f"""
-You are the query understanding component of an agricultural
+You are the query-understanding component of AgriSphere AI.
+
+Your task is to understand the user's question.
+DO NOT answer the question.
+
+The user is interacting with an agriculture-focused
 AI assistant.
 
-Understand the user's agricultural question.
-
-Do NOT answer the question.
-
-Determine:
-
-- topic
-- intent
-- crop
-- location
-- season
-- crop stage
-- symptoms
-- search query
-- whether clarification is genuinely necessary
-
-IMPORTANT:
-
-Normal agricultural knowledge questions must NOT be routed
-to the Knowledge Agent because this component is already
-inside the Knowledge Agent.
-
-Only route questions requiring CURRENT or SPECIALIZED data.
+The Knowledge Agent should handle normal agricultural
+knowledge and educational questions.
 
 Examples:
 
-"What is soil pH?"
-"What is crop rotation?"
-"Why is nitrogen important?"
-"How does irrigation affect crops?"
-"What is photosynthesis?"
-"What is organic farming?"
+- What is soil pH?
+- What are plant nutrients?
+- Why is nitrogen important?
+- What is NPK?
+- What is crop rotation?
+- What is organic farming?
+- What is irrigation?
+- Why do leaves turn yellow?
+- How can soil fertility be improved?
+- What is photosynthesis?
+- What is mulching?
+- What is intercropping?
+- What causes fungal diseases?
+- How can pests be controlled?
 
-These are normal Knowledge Agent questions.
+These should normally remain inside the Knowledge Agent.
+
+ONLY identify a specialized agent when the question
+requires information that another specialized agent
+is specifically designed to provide.
+
+SPECIALIZED AGENTS:
+
+Market Intelligence Agent:
+- current mandi prices
+- current market conditions
+- market trends
+- selling decisions based on current market data
+
+Climate Intelligence Agent:
+- current weather
+- current forecast
+- location-specific weather
+- current climate conditions
+
+Government Scheme Agent:
+- current government schemes
+- current eligibility
+- current subsidy information
+- current application information
+
+Crop Planning Agent:
+- crop selection based on soil/location/conditions
+- crop suitability analysis
+- detailed crop planning decisions
+
+Crop Health Agent:
+- image-based crop disease/health diagnosis
+
+IMPORTANT:
+
+A general agriculture question is NOT a specialized-agent
+question.
+
+For example:
+
+"What fertilizer is good for nitrogen deficiency?"
+is agricultural knowledge.
+
+"Why are plant leaves yellow?"
+is agricultural knowledge.
+
+"What is the best soil for wheat?"
+is agricultural knowledge unless the user is asking
+for a complete crop-selection recommendation.
+
+FOLLOW-UP QUESTIONS:
+
+Use the conversation context.
+
+For example:
+
+Previous:
+"What is NPK?"
+
+Current:
+"Which one helps leaf growth?"
+
+The search query should become something like:
+
+"Which NPK nutrient helps leaf and vegetative growth?"
+
+Another example:
+
+Previous:
+"What causes yellow leaves?"
+
+Current:
+"How can I prevent it?"
+
+The search query should include the relevant context
+about yellow leaves.
+
+Do NOT ask for information that is unnecessary.
+
+A question such as:
+
+"What is photosynthesis?"
+
+does not require crop, location or season.
+
+Only mark clarification as necessary when the question
+cannot reasonably be answered without missing information.
 
 ========================================
-QUESTION
+CURRENT QUESTION
 ========================================
 
 {question}
 
 ========================================
-CONVERSATION
+CONVERSATION CONTEXT
 ========================================
 
 {json.dumps(
@@ -263,12 +461,12 @@ CONVERSATION
 )}
 
 ========================================
-RETURN ONLY JSON
+RETURN ONLY VALID JSON
 ========================================
 
 {{
-    "topic": "soil",
-    "intent": "explanation",
+    "topic": "agriculture",
+    "intent": "agricultural_knowledge",
     "crop": null,
     "location": null,
     "season": null,
@@ -282,7 +480,6 @@ RETURN ONLY JSON
     "requires_specialized_agent": false,
     "specialized_agent": null
 }}
-
 """
 
         try:
@@ -296,7 +493,9 @@ RETURN ONLY JSON
                 response.text
             )
 
-            result = json.loads(text)
+            result = json.loads(
+                text
+            )
 
             return self._normalize_analysis(
                 result,
@@ -305,23 +504,58 @@ RETURN ONLY JSON
 
         except Exception as e:
 
-            print("Query analysis error:", e)
+            print(
+                "Query analysis error:",
+                e
+            )
+
+            # Safe fallback:
+            # treat the question as normal
+            # agriculture knowledge.
 
             return {
-                "topic": "agriculture",
-                "intent": "general_agriculture",
-                "crop": None,
-                "location": None,
-                "season": None,
-                "crop_stage": None,
-                "symptoms": [],
-                "user_goal": None,
-                "needs_clarification": False,
-                "missing_information": [],
-                "clarification_question": None,
-                "search_query": question,
-                "requires_specialized_agent": False,
-                "specialized_agent": None
+
+                "topic":
+                    "agriculture",
+
+                "intent":
+                    "agricultural_knowledge",
+
+                "crop":
+                    None,
+
+                "location":
+                    None,
+
+                "season":
+                    None,
+
+                "crop_stage":
+                    None,
+
+                "symptoms":
+                    [],
+
+                "user_goal":
+                    None,
+
+                "needs_clarification":
+                    False,
+
+                "missing_information":
+                    [],
+
+                "clarification_question":
+                    None,
+
+                "search_query":
+                    question,
+
+                "requires_specialized_agent":
+                    False,
+
+                "specialized_agent":
+                    None
             }
 
     # =========================================================
@@ -335,28 +569,59 @@ RETURN ONLY JSON
     ) -> Dict:
 
         defaults = {
-            "topic": "agriculture",
-            "intent": "general_agriculture",
-            "crop": None,
-            "location": None,
-            "season": None,
-            "crop_stage": None,
-            "symptoms": [],
-            "user_goal": None,
-            "needs_clarification": False,
-            "missing_information": [],
-            "clarification_question": None,
-            "search_query": question,
-            "requires_specialized_agent": False,
-            "specialized_agent": None
+
+            "topic":
+                "agriculture",
+
+            "intent":
+                "agricultural_knowledge",
+
+            "crop":
+                None,
+
+            "location":
+                None,
+
+            "season":
+                None,
+
+            "crop_stage":
+                None,
+
+            "symptoms":
+                [],
+
+            "user_goal":
+                None,
+
+            "needs_clarification":
+                False,
+
+            "missing_information":
+                [],
+
+            "clarification_question":
+                None,
+
+            "search_query":
+                question,
+
+            "requires_specialized_agent":
+                False,
+
+            "specialized_agent":
+                None
         }
 
         for key, value in defaults.items():
 
             if key not in result:
+
                 result[key] = value
 
-        # Never allow Knowledge Agent to route to itself.
+        # -----------------------------------------------------
+        # NEVER ROUTE TO KNOWLEDGE AGENT ITSELF
+        # -----------------------------------------------------
 
         agent = str(
             result.get(
@@ -371,11 +636,25 @@ RETURN ONLY JSON
             "knowledge assistant"
         ]:
 
-            result["requires_specialized_agent"] = False
-            result["specialized_agent"] = None
+            result[
+                "requires_specialized_agent"
+            ] = False
 
-        if not result.get("search_query"):
-            result["search_query"] = question
+            result[
+                "specialized_agent"
+            ] = None
+
+        # -----------------------------------------------------
+        # SAFETY CHECK FOR SEARCH QUERY
+        # -----------------------------------------------------
+
+        if not result.get(
+            "search_query"
+        ):
+
+            result[
+                "search_query"
+            ] = question
 
         return result
 
@@ -393,73 +672,138 @@ RETURN ONLY JSON
                 "intent",
                 ""
             )
-        ).lower()
-
-        topic = str(
-            analysis.get(
-                "topic",
-                ""
-            )
-        ).lower()
+        ).lower().strip()
 
         # -----------------------------------------------------
         # MARKET
         # -----------------------------------------------------
 
-        if intent == "market":
+        if intent in [
+            "market",
+            "current_market",
+            "market_price",
+            "market_trend"
+        ]:
 
             return {
-                "requires_specialized_agent": True,
+
+                "requires_specialized_agent":
+                    True,
+
                 "specialized_agent":
                     "Market Intelligence Agent",
+
                 "message":
-                    "This question requires current market information. "
-                    "Please use the Market Intelligence Agent."
+                    (
+                        "This question requires current "
+                        "market information. Please use "
+                        "the Market Intelligence Agent."
+                    )
             }
 
         # -----------------------------------------------------
         # WEATHER / CLIMATE
         # -----------------------------------------------------
 
-        if intent == "weather_agriculture":
+        if intent in [
+            "weather",
+            "weather_agriculture",
+            "current_weather",
+            "climate_current"
+        ]:
 
             return {
-                "requires_specialized_agent": True,
+
+                "requires_specialized_agent":
+                    True,
+
                 "specialized_agent":
                     "Climate Intelligence Agent",
+
                 "message":
-                    "This question requires current weather or climate "
-                    "information. Please use the Climate Intelligence Agent."
+                    (
+                        "This question requires current "
+                        "weather or climate information. "
+                        "Please use the Climate Intelligence Agent."
+                    )
             }
 
         # -----------------------------------------------------
-        # GOVERNMENT
+        # GOVERNMENT SCHEMES
         # -----------------------------------------------------
 
-        if intent == "government_scheme":
+        if intent in [
+            "government_scheme",
+            "current_scheme",
+            "government_subsidy"
+        ]:
 
             return {
-                "requires_specialized_agent": True,
+
+                "requires_specialized_agent":
+                    True,
+
                 "specialized_agent":
                     "Government Scheme Agent",
+
                 "message":
-                    "This question requires current government scheme "
-                    "information. Please use the Government Scheme Agent."
+                    (
+                        "This question requires current "
+                        "government scheme information. "
+                        "Please use the Government Scheme Agent."
+                    )
             }
 
         # -----------------------------------------------------
         # CROP PLANNING
         # -----------------------------------------------------
 
-        if intent == "crop_selection":
+        if intent in [
+            "crop_selection",
+            "crop_planning",
+            "crop_suitability"
+        ]:
 
             return {
-                "requires_specialized_agent": True,
+
+                "requires_specialized_agent":
+                    True,
+
                 "specialized_agent":
                     "Crop Planning Agent",
+
                 "message":
-                    "This question requires crop suitability analysis. "
-                    "Please use the Crop Planning Agent."
+                    (
+                        "This question requires crop "
+                        "suitability or crop planning analysis. "
+                        "Please use the Crop Planning Agent."
+                    )
+            }
+
+        # -----------------------------------------------------
+        # CROP HEALTH
+        # -----------------------------------------------------
+
+        if intent in [
+            "crop_health_image",
+            "disease_image",
+            "plant_diagnosis"
+        ]:
+
+            return {
+
+                "requires_specialized_agent":
+                    True,
+
+                "specialized_agent":
+                    "Crop Health Agent",
+
+                "message":
+                    (
+                        "This question requires crop health "
+                        "or image-based disease analysis. "
+                        "Please use the Crop Health Agent."
+                    )
             }
 
         # -----------------------------------------------------
@@ -467,8 +811,12 @@ RETURN ONLY JSON
         # -----------------------------------------------------
 
         return {
-            "requires_specialized_agent": False,
-            "specialized_agent": None
+
+            "requires_specialized_agent":
+                False,
+
+            "specialized_agent":
+                None
         }
 
     # =========================================================
@@ -481,9 +829,10 @@ RETURN ONLY JSON
     ) -> str:
 
         if not documents:
+
             return (
-                "No relevant documents were retrieved from "
-                "the agricultural knowledge base."
+                "No relevant agricultural documents "
+                "were retrieved."
             )
 
         parts = []
@@ -500,15 +849,27 @@ RETURN ONLY JSON
             )
 
             source = (
-                metadata.get("document_name")
-                or metadata.get("source")
+                metadata.get(
+                    "document_name"
+                )
+                or metadata.get(
+                    "source"
+                )
                 or "Agricultural knowledge source"
             )
 
-            page = metadata.get("page")
+            page = metadata.get(
+                "page"
+            )
 
-            if isinstance(page, int):
-                source += f", page {page + 1}"
+            if isinstance(
+                page,
+                int
+            ):
+
+                source += (
+                    f", page {page + 1}"
+                )
 
             content = (
                 getattr(
@@ -520,6 +881,7 @@ RETURN ONLY JSON
             ).strip()
 
             if not content:
+
                 continue
 
             parts.append(
@@ -532,11 +894,44 @@ Source: {source}
             )
 
         if not parts:
+
             return (
-                "No usable information was retrieved."
+                "No usable agricultural information "
+                "was retrieved."
             )
 
-        return "\n".join(parts)
+        return "\n".join(
+            parts
+        )
+
+    # =========================================================
+    # CHECK CONTEXT
+    # =========================================================
+
+    def _has_useful_context(
+        self,
+        context: str
+    ) -> bool:
+
+        if not context:
+
+            return False
+
+        invalid_messages = [
+            "No relevant agricultural documents",
+            "No usable agricultural information",
+            "No relevant documents"
+        ]
+
+        for message in invalid_messages:
+
+            if message in context:
+
+                return False
+
+        return len(
+            context.strip()
+        ) > 100
 
     # =========================================================
     # GENERATE ANSWER
@@ -554,10 +949,14 @@ Source: {source}
         prompt = f"""
 You are AgriSphere AI's Knowledge Agent.
 
-You are a general agricultural knowledge assistant.
+You are an agriculture-focused conversational
+knowledge assistant.
 
-Your job is to answer agricultural questions naturally,
-accurately and intelligently.
+Your job is to answer the user's question naturally,
+clearly and accurately.
+
+You should behave like a helpful agricultural expert
+explaining concepts to a farmer or agriculture student.
 
 ========================================
 USER QUESTION
@@ -586,107 +985,129 @@ CONVERSATION CONTEXT
 )}
 
 ========================================
-RETRIEVED AGRICULTURAL KNOWLEDGE
+AGRICULTURAL KNOWLEDGE
 ========================================
 
 {context}
 
 ========================================
-CRITICAL ANSWERING RULES
+IMPORTANT RULES
 ========================================
 
-1. ANSWER THE QUESTION DIRECTLY.
+1. ANSWER DIRECTLY.
 
-Do not start with:
+Do not begin with:
 
 "I can explain..."
-"Based on the available information..."
-"The provided evidence does not..."
-"I don't have a direct definition..."
+"Based on the information..."
+"According to the retrieved documents..."
 
-Just answer.
+Start with the actual answer.
 
-2. RAG IS SUPPORTING KNOWLEDGE.
+2. UNDERSTAND CONTEXT.
 
-Retrieved documents are useful evidence.
+If the user asks a follow-up question, use the
+conversation context to understand what they mean.
 
-They are NOT a restriction on what you can explain.
+Example:
 
-If the documents contain relevant information, use it.
+User:
+"What is NPK?"
 
-If the documents only partially cover the question, combine
-the retrieved information with your general agricultural
-knowledge.
+Follow-up:
+"Which one helps leaf growth?"
 
-3. DO NOT REQUIRE AN EXACT SENTENCE IN THE DOCUMENT.
+Understand that "which one" refers to the
+NPK nutrients.
 
-For example, if the user asks:
+3. USE RETRIEVED KNOWLEDGE WHEN AVAILABLE.
 
-"What is soil pH?"
+The agricultural knowledge provided above is the
+primary evidence for your answer.
 
-and the documents discuss soil acidity, alkalinity,
-nutrient availability and soil management, you can use
-that information together with your general knowledge to
-give a complete explanation.
+Use it when relevant.
 
-4. DO NOT INVENT FACTS.
+4. DO NOT REQUIRE AN EXACT SENTENCE.
 
-Never fabricate:
+You can combine related information from multiple
+retrieved passages to explain the concept.
 
-- chemical dosages
-- pesticide quantities
-- fertilizer application rates
+5. ACCURACY IS MORE IMPORTANT THAN COMPLETENESS.
+
+Never invent specific agricultural facts.
+
+Do NOT fabricate:
+
+- fertilizer doses
+- pesticide doses
+- chemical concentrations
 - market prices
 - weather information
-- government scheme details
+- government scheme eligibility
+- subsidy amounts
 - disease diagnoses
+- crop yields
+- scientific measurements
 
-5. CURRENT INFORMATION.
+6. GENERAL AGRICULTURAL KNOWLEDGE.
 
-Do not pretend that the knowledge base contains current
-weather, market prices or current government information.
+If the retrieved documents do not completely cover
+a simple educational agriculture question, you may
+use reliable general agricultural knowledge to
+complete the explanation.
 
-Those belong to specialized agents.
+However, do not invent specific numerical
+recommendations.
 
-6. AGRICULTURAL REASONING.
+For example, for:
 
-For questions such as:
+"What is photosynthesis?"
 
-"Why are leaves yellow?"
-"What happens if soil is acidic?"
-"Why is nitrogen important?"
+you can provide a normal scientific explanation.
 
-explain the cause and reasoning.
+For:
 
-7. PRACTICAL QUESTIONS.
+"How many kg of fertilizer should I apply per acre?"
 
-For "how to" questions, provide clear steps.
+do not invent a number unless reliable information
+supports the recommendation.
 
-8. UNCERTAIN QUESTIONS.
+7. UNCERTAINTY.
 
-If several causes are possible, say:
+When multiple causes are possible, say:
 
 "Possible causes include..."
 
-Do not pretend one cause is certain.
+Do not present an uncertain diagnosis as a fact.
 
-9. SIMPLE LANGUAGE.
+8. PRACTICAL QUESTIONS.
 
-Answer like an agricultural expert explaining the concept
-to a farmer or agriculture student.
+For "how to" questions, give clear numbered steps
+when appropriate.
 
-10. DO NOT TALK ABOUT:
+9. AGRICULTURE CONTEXT.
 
-- RAG
-- embeddings
-- FAISS
-- prompts
-- Gemini
-- vector databases
-- internal agents
-- evidence evaluation
+Prefer agriculture-related examples.
 
-11. FORMAT.
+10. SPECIALIZED DATA.
+
+Do not invent current information.
+
+Current:
+
+- market prices
+- weather
+- forecasts
+- government schemes
+
+should come from their respective specialized agents.
+
+11. LANGUAGE.
+
+Answer in the same language as the user whenever
+practical.
+
+12. FORMAT.
 
 Use normal Markdown.
 
@@ -698,29 +1119,36 @@ Use:
 
 1. numbered steps
 
-Do NOT output literal characters such as:
+Do not output literal escaped newline characters.
 
-\\n
+13. ANSWER LENGTH.
 
-Use actual line breaks.
+For simple questions:
+2-5 short paragraphs.
 
-12. ANSWER LENGTH.
+For complex questions:
+use headings and detailed explanation.
 
-Simple question:
-2-5 paragraphs.
+14. DO NOT DISCUSS INTERNAL TECHNOLOGY.
 
-Complex question:
-Use headings and detailed explanation.
+Never mention:
 
-13. LANGUAGE.
+- RAG
+- FAISS
+- embeddings
+- vector databases
+- Gemini
+- prompts
+- internal agents
+- retrieval systems
 
-Answer in the same language as the user whenever practical.
+unless the user specifically asks how AgriSphere works.
 
 ========================================
 FINAL INSTRUCTION
 ========================================
 
-Now answer the user's question directly.
+Answer the user's question now.
 """
 
         try:
@@ -734,20 +1162,28 @@ Now answer the user's question directly.
                 response.text or ""
             ).strip()
 
-            # ---------------------------------------------
-            # FIX LITERAL ESCAPED NEWLINES
-            # ---------------------------------------------
+            # -------------------------------------------------
+            # FIX ESCAPED NEWLINES
+            # -------------------------------------------------
 
             answer = answer.replace(
                 "\\n",
                 "\n"
             )
 
-            # Remove accidental code fences
-            if answer.startswith("```") and answer.endswith("```"):
+            # -------------------------------------------------
+            # REMOVE ACCIDENTAL CODE FENCES
+            # -------------------------------------------------
+
+            if (
+                answer.startswith("```")
+                and answer.endswith("```")
+            ):
+
                 lines = answer.splitlines()
 
                 if len(lines) > 2:
+
                     answer = "\n".join(
                         lines[1:-1]
                     )
@@ -786,11 +1222,19 @@ Now answer the user's question directly.
             )
 
             source = (
-                metadata.get("document_name")
-                or metadata.get("source")
+                metadata.get(
+                    "document_name"
+                )
+                or metadata.get(
+                    "source"
+                )
             )
 
-            if source and source not in sources:
+            if (
+                source
+                and source not in sources
+            ):
+
                 sources.append(
                     str(source)
                 )
@@ -810,13 +1254,22 @@ Now answer the user's question directly.
             text or ""
         ).strip()
 
-        if text.startswith("```json"):
+        if text.startswith(
+            "```json"
+        ):
+
             text = text[7:]
 
-        elif text.startswith("```"):
+        elif text.startswith(
+            "```"
+        ):
+
             text = text[3:]
 
-        if text.endswith("```"):
+        if text.endswith(
+            "```"
+        ):
+
             text = text[:-3]
 
         return text.strip()

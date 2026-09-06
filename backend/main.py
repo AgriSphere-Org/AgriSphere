@@ -7,7 +7,7 @@ from api.crop_health import router as crop_health_router
 from api.market import router as market_router
 from api.government_scheme import router as government_router
 from api.knowledge import router as knowledge_router
-from api.recommendation import router as recommendation_router
+
 from api.orchestrator import router as orchestrator_router
 from api.language import router as language_router
 
@@ -53,7 +53,7 @@ app.include_router(government_router)
 
 app.include_router(knowledge_router)
 
-app.include_router(recommendation_router)
+
 
 app.include_router(orchestrator_router)
 
@@ -111,7 +111,7 @@ def info():
             "Market Intelligence",
             "Government Scheme Recommendation",
             "Knowledge (RAG)",
-            "Recommendation Engine",
+           
             "Language Intelligence",
             "Orchestrator"
         ]

@@ -6,13 +6,13 @@ import {
   TrendingUp,
   Landmark,
   MessageCircle,
-  BrainCircuit,
   Bell,
   Settings,
   User,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+
 
 const menuItems = [
   {
@@ -50,12 +50,8 @@ const menuItems = [
     icon: MessageCircle,
     path: "/knowledge",
   },
-  {
-    label: "AI Recommendations",
-    icon: BrainCircuit,
-    path: "/recommendations",
-  },
 ];
+
 
 const bottomItems = [
   {
@@ -75,13 +71,16 @@ const bottomItems = [
   },
 ];
 
+
 function Sidebar({
   collapsed,
   setCollapsed,
   currentPath,
   navigate,
 }) {
+
   const renderItem = (item) => {
+
     const Icon = item.icon;
 
     const active =
@@ -98,17 +97,22 @@ function Sidebar({
           active ? "active" : ""
         }`}
       >
+
         <Icon
           size={20}
           strokeWidth={2}
         />
 
         {!collapsed && (
-          <span>{item.label}</span>
+          <span>
+            {item.label}
+          </span>
         )}
+
       </button>
     );
   };
+
 
   return (
     <aside
@@ -131,12 +135,20 @@ function Sidebar({
 
         {!collapsed && (
           <div className="brand-text">
-            <strong>AgriSphere</strong>
-            <span>AI</span>
+
+            <strong>
+              AgriSphere
+            </strong>
+
+            <span>
+              AI
+            </span>
+
           </div>
         )}
 
       </div>
+
 
       {/* =====================================================
           MAIN NAVIGATION
@@ -156,6 +168,7 @@ function Sidebar({
 
       </div>
 
+
       {/* =====================================================
           ACCOUNT NAVIGATION
       ===================================================== */}
@@ -173,6 +186,7 @@ function Sidebar({
         </nav>
 
       </div>
+
 
       {/* =====================================================
           COLLAPSE BUTTON
@@ -198,7 +212,9 @@ function Sidebar({
         )}
 
         {!collapsed && (
-          <span>Collapse</span>
+          <span>
+            Collapse
+          </span>
         )}
 
       </button>
@@ -206,5 +222,6 @@ function Sidebar({
     </aside>
   );
 }
+
 
 export default Sidebar;
